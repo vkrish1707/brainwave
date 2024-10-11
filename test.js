@@ -1,53 +1,60 @@
-const columnDefs = [
-  // Other columns...
-  {
-    field: 'yourField', // Field for column 4
-    headerName: 'Your Column Name',
-    filter: 'agDateColumnFilter', // Use AG Grid's built-in date filter
-    filterParams: {
-      comparator: (filterDate, cellValue) => {
-        // Extract date from the value field in the first object of the array
-        const firstObj = cellValue && cellValue[0];
-        const cellDate = new Date(firstObj?.value);
-        if (isNaN(cellDate)) {
-          // If it's not a date, treat it as text (always passes the date filter)
-          return 0;
-        }
-        return cellDate.getTime() - filterDate.getTime();
-      }
-    },
-    valueGetter: (params) => {
-      // Get the value for this column
-      return params.data.yourField && params.data.yourField[0]?.value;
-    },
-    valueFormatter: (params) => {
-      // Format date to show correctly
-      const value = params.value;
-      if (isNaN(new Date(value))) return value; // Return the text as-is
-      return new Date(value).toLocaleDateString();
-    }
-  },
-  // Other columns...
-];
+import React, { useState } from 'react';
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Checkbox,
+  Button,
+  Typography,
+  FormControlLabel
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-const applyDateRangeFilter = (startYear, endYear) => {
-  const gridApi = gridRef.current.api; // Assuming gridRef is your AG Grid ref
-  
-  // Get the filter instance for the column with the date (replace with your actual column field)
-  const filterInstance = gridApi.getFilterInstance('yourField');
-  
-  if (filterInstance) {
-    const startDate = new Date(startYear, 0, 1);
-    const endDate = new Date(endYear, 11, 31);
-    
-    // Set the filter model with the date range
-    filterInstance.setModel({
-      type: 'inRange',
-      dateFrom: startDate,
-      dateTo: endDate
-    });
+const ColorFilterAccordion = ({ onApply }) => {
+  const [selectedColors, setSelectedColors] = useState({
+    red: false,
+    blue: false,
+    green: false,
+    yellow: false,
+  });
 
-    // Apply the filter to the grid
-    gridApi.onFilterChanged();
-  }
+  const handleColorChange = (color) => {
+    setSelectedColors((prev) => ({ ...prev, [color]: !prev[color] }));
+  };
+
+  const handleApply = () => {
+    // Call the onApply function and pass the selected colors
+    onApply(selectedColors);
+  };
+
+  return (
+    <Accordion>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography>Filter by Color</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <FormControlLabel
+          control={<Checkbox checked={selectedColors.red} onChange={() => handleColorChange('red')} />}
+          label="Red"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={selectedColors.blue} onChange={() => handleColorChange('blue')} />}
+          label="Blue"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={selectedColors.green} onChange={() => handleColorChange('green')} />}
+          label="Green"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={selectedColors.yellow} onChange={() => handleColorChange('yellow')} />}
+          label="Yellow"
+        />
+        <Button variant="contained" color="primary" onClick={handleApply}>
+          Apply
+        </Button>
+      </AccordionDetails>
+    </Accordion>
+  );
 };
+
+export default ColorFilterAccordion;
