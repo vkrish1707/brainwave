@@ -1,60 +1,43 @@
-import React, { useState } from 'react';
-import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Checkbox,
-  Button,
-  Typography,
-  FormControlLabel
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+function filterObjectsByColor(mainArray, colorArray) {
+  return mainArray.map(item => {
+    const updatedItem = { ...item };
+    
+    Object.keys(item).forEach(key => {
+      if (key.startsWith("IPType") && Array.isArray(item[key])) {
+        const filteredObjects = item[key].filter(obj => colorArray.includes(obj.color));
 
-const ColorFilterAccordion = ({ onApply }) => {
-  const [selectedColors, setSelectedColors] = useState({
-    red: false,
-    blue: false,
-    green: false,
-    yellow: false,
+        updatedItem[key] = filteredObjects.length > 0 
+          ? filteredObjects 
+          : [{ value: "", color: "white" }];
+      }
+    });
+
+    return updatedItem;
   });
+}
 
-  const handleColorChange = (color) => {
-    setSelectedColors((prev) => ({ ...prev, [color]: !prev[color] }));
-  };
+// Example usage:
+const inputData = [
+  {
+    "name": "item1",
+    "IPType1": [
+      { "value": "data1", "color": "green" },
+      { "value": "data2", "color": "red" }
+    ],
+    "IPType2": [
+      { "value": "data3", "color": "blue" },
+      { "value": "data4", "color": "green" }
+    ]
+  },
+  {
+    "name": "item2",
+    "IPType1": [
+      { "value": "data5", "color": "yellow" },
+      { "value": "data6", "color": "red" }
+    ]
+  }
+];
 
-  const handleApply = () => {
-    // Call the onApply function and pass the selected colors
-    onApply(selectedColors);
-  };
-
-  return (
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>Filter by Color</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <FormControlLabel
-          control={<Checkbox checked={selectedColors.red} onChange={() => handleColorChange('red')} />}
-          label="Red"
-        />
-        <FormControlLabel
-          control={<Checkbox checked={selectedColors.blue} onChange={() => handleColorChange('blue')} />}
-          label="Blue"
-        />
-        <FormControlLabel
-          control={<Checkbox checked={selectedColors.green} onChange={() => handleColorChange('green')} />}
-          label="Green"
-        />
-        <FormControlLabel
-          control={<Checkbox checked={selectedColors.yellow} onChange={() => handleColorChange('yellow')} />}
-          label="Yellow"
-        />
-        <Button variant="contained" color="primary" onClick={handleApply}>
-          Apply
-        </Button>
-      </AccordionDetails>
-    </Accordion>
-  );
-};
-
-export default ColorFilterAccordion;
+const colorArray = ["green", "blue"];
+const filteredData = filterObjectsByColor(inputData, colorArray);
+console.log(filteredData);
