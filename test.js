@@ -1,27 +1,36 @@
-const gridApi = gridRef.current.api;
+const applyYearFilter = async (startYear, endYear) => {
+    const gridApi = gridRef.current.api;
 
-// Function to control visibility of the first row
-const toggleFirstRowVisibility = (shouldShowFirstRow) => {
-  const allNodes = [];
-  gridApi.forEachNode((node) => allNodes.push(node));  // Get all row nodes
+    const filterInstance = await gridApi.getColumnFilterInstance('por');
 
-  const firstRowNode = allNodes[0];  // Access the first row node
+    if (filterInstance) {
+        const startDate = new Date(startYear, 0, 1);
+        const endDate = new Date(endYear, 11, 31);
 
-  // Set first row visibility based on the toggle
-  firstRowNode.setRowVisible(shouldShowFirstRow);
+        // Set up a filter model with a custom comparator that skips the first row
+        filterInstance.setModel({
+            type: "inRange",
+            comparator: (filterDate, cellValue, node) => {
+                // If it's the first row, return true to keep it visible
+                if (node.rowIndex === 0) {
+                    return true; // Skip filtering for the first row
+                }
+
+                // Otherwise, apply the date filter logic
+                const firstObj = cellValue && cellValue[0];
+                const cellDate = new Date(firstObj?.value || "");
+
+                if (isNaN(cellDate)) {
+                    return -1; // Treat non-date values as less than any date
+                }
+
+                return cellDate.getTime() - filterDate.getTime();
+            },
+            dateFrom: startDate.toISOString().split("T")[0],
+            dateTo: endDate.toISOString().split("T")[0],
+        });
+
+        // Trigger the filter in the grid
+        gridApi.onFilterChanged();
+    }
 };
-
-// Apply Filter for the other rows starting from the second row
-const applyFilterForOtherRows = (filterModel) => {
-  const allNodes = [];
-  gridApi.forEachNode((node) => allNodes.push(node));  // Get all row nodes
-
-  allNodes.slice(1).forEach((node) => {
-    // Apply your filter logic here for rows starting from index 1
-    gridApi.onFilterChanged();
-  });
-};
-
-// Example usage
-toggleFirstRowVisibility(true);  // Show the first row
-applyFilterForOtherRows(filterModel);  // Apply filters starting from the second row
