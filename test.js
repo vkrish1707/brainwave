@@ -1,43 +1,27 @@
-function filterObjectsByColor(mainArray, colorArray) {
-  return mainArray.map(item => {
-    const updatedItem = { ...item };
-    
-    Object.keys(item).forEach(key => {
-      if (key.startsWith("IPType") && Array.isArray(item[key])) {
-        const filteredObjects = item[key].filter(obj => colorArray.includes(obj.color));
+const gridApi = gridRef.current.api;
 
-        updatedItem[key] = filteredObjects.length > 0 
-          ? filteredObjects 
-          : [{ value: "", color: "white" }];
-      }
-    });
+// Function to control visibility of the first row
+const toggleFirstRowVisibility = (shouldShowFirstRow) => {
+  const allNodes = [];
+  gridApi.forEachNode((node) => allNodes.push(node));  // Get all row nodes
 
-    return updatedItem;
+  const firstRowNode = allNodes[0];  // Access the first row node
+
+  // Set first row visibility based on the toggle
+  firstRowNode.setRowVisible(shouldShowFirstRow);
+};
+
+// Apply Filter for the other rows starting from the second row
+const applyFilterForOtherRows = (filterModel) => {
+  const allNodes = [];
+  gridApi.forEachNode((node) => allNodes.push(node));  // Get all row nodes
+
+  allNodes.slice(1).forEach((node) => {
+    // Apply your filter logic here for rows starting from index 1
+    gridApi.onFilterChanged();
   });
-}
+};
 
-// Example usage:
-const inputData = [
-  {
-    "name": "item1",
-    "IPType1": [
-      { "value": "data1", "color": "green" },
-      { "value": "data2", "color": "red" }
-    ],
-    "IPType2": [
-      { "value": "data3", "color": "blue" },
-      { "value": "data4", "color": "green" }
-    ]
-  },
-  {
-    "name": "item2",
-    "IPType1": [
-      { "value": "data5", "color": "yellow" },
-      { "value": "data6", "color": "red" }
-    ]
-  }
-];
-
-const colorArray = ["green", "blue"];
-const filteredData = filterObjectsByColor(inputData, colorArray);
-console.log(filteredData);
+// Example usage
+toggleFirstRowVisibility(true);  // Show the first row
+applyFilterForOtherRows(filterModel);  // Apply filters starting from the second row
