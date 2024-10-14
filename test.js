@@ -1,33 +1,25 @@
-const applyYearFilter = async (startYear, endYear) => {
-    const gridApi = gridRef.current.api;
+const toggleFirstRowPinOnFilter = () => {
+    const gridApi = gridRef.current.api;  // Assuming gridRef is your AG Grid reference
+    const isFilterApplied = checkForFilters(gridApi);
 
-    // Extract the first row data before applying the filter
-    const firstRowNode = gridApi.getDisplayedRowAtIndex(0);
-    const firstRowData = firstRowNode ? firstRowNode.data : null;
-
-    const filterInstance = await gridApi.getColumnFilterInstance('por');
-
-    if (filterInstance) {
-        const startDate = new Date(startYear, 0, 1);
-        const endDate = new Date(endYear, 11, 31);
-
-        // Apply the date range filter
-        filterInstance.setModel({
-            type: "inRange",
-            dateFrom: startDate.toISOString().split("T")[0],
-            dateTo: endDate.toISOString().split("T")[0],
-        });
-
-        // Trigger the filtering logic
-        gridApi.onFilterChanged();
-
-        // After applying filter, add the first row back to the top of the grid
-        if (firstRowData) {
-            const transaction = {
-                add: [firstRowData],  // Add the first row data back
-                addIndex: 0           // Ensure it's added at index 0
-            };
-            gridApi.applyTransaction(transaction);
-        }
+    if (isFilterApplied) {
+        // Pin the first row
+        const firstRowData = {/* Your first row data */};
+        gridApi.setPinnedTopRowData([firstRowData]);
+    } else {
+        // Unpin the first row
+        gridApi.setPinnedTopRowData([]);
     }
+};
+
+const checkForFilters = (gridApi) => {
+    const filterModel = gridApi.getFilterModel();
+    return Object.keys(filterModel).length > 0;  // Returns true if any filters are applied
+};
+
+// AG Grid options with filter event listener
+const gridOptions = {
+    onFilterChanged: () => {
+        toggleFirstRowPinOnFilter();
+    },
 };
