@@ -1,45 +1,42 @@
-const handleColorFilterApply = () => {
-  const activeColors = Object.keys(selectedColors)
-    .filter((color) => selectedColors[color].state)
-    .map((color) => selectedColors[color].value);
+const express = require('express');
+const mongoose = require('mongoose');
+const router = express.Router();
+const IpReuseModel = mongoose.model('IpReuse'); // Assuming the model is defined as IpReuse
 
-  // Process and sanitize the row data in a single pass
-  const sanitizedRows = backendData.data.map((item) => {
-    let sanitizedItem = { ...item };
+// The route to handle the request
+router.post('/replaceIpTypeValues', async (req, res) => {
+  try {
+    // Destructure the IDs from the request body
+    const { mainId, copyFromId } = req.body;
 
-    // Filter through the object's keys once, avoid extra loops
-    Object.keys(sanitizedItem).forEach((key) => {
-      if (key.startsWith("ipType") && Array.isArray(sanitizedItem[key])) {
-        sanitizedItem[key] = sanitizedItem[key].map((obj) => {
-          const cellColor = obj.color.toLowerCase();
-          if (activeColors.includes(cellColor)) {
-            return obj;
-          }
-          // Return object with value and color white if no match
-          return { value: "", color: "ffffff" };
-        });
+    // Fetch the main object using the mainId
+    const mainObject = await IpReuseModel.findById(mainId);
+    if (!mainObject) {
+      return res.status(404).json({ message: 'Main object not found' });
+    }
+
+    // Fetch the copyFrom object using the copyFromId
+    const copyFromObject = await IpReuseModel.findById(copyFromId);
+    if (!copyFromObject) {
+      return res.status(404).json({ message: 'Copy-from object not found' });
+    }
+
+    // Iterate over the keys of the main object and replace values starting with "IP type"
+    Object.keys(mainObject).forEach((key) => {
+      if (key.startsWith('ipType') && copyFromObject[key]) {
+        // Replace the main object's IP type values with copy-from object's values
+        mainObject[key] = copyFromObject[key];
       }
     });
-    
-    // Return the sanitized item
-    return sanitizedItem;
-  });
 
-  const filteredRows = sanitizedRows.filter((row) => {
-    return Object.keys(row).some((key) => {
-      if (key.startsWith("ipType") && Array.isArray(row[key])) {
-        return row[key].some(
-          (obj) => obj.value !== "" && obj.color !== "ffffff"
-        );
-      }
-      return false;
-    });
-  });
+    // Save the updated main object back to the database
+    await mainObject.save();
 
-  const updatedData = isDataProvidersEnabled
-    ? [dataProviders, ...filteredRows]
-    : filteredRows;
+    return res.status(200).json({ message: 'IP type values replaced successfully', mainObject });
+  } catch (error) {
+    console.error('Error replacing IP type values:', error);
+    return res.status(500).json({ message: 'Server error', error });
+  }
+});
 
-  setRowData(updatedData);
-  setIsColorFilterEnabled(true);
-};
+module.exports = router;
