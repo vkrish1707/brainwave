@@ -1,78 +1,45 @@
-exports.saveNewSoc = async (req, res) => {
-  try {
-    const { name, copyFrom } = req.body;
+const handleColorFilterApply = () => {
+  const activeColors = Object.keys(selectedColors)
+    .filter((color) => selectedColors[color].state)
+    .map((color) => selectedColors[color].value);
 
-    if (!name) {
-      return res.status(400).json({ error: "Name is required" });
-    }
+  // Process and sanitize the row data in a single pass
+  const sanitizedRows = backendData.data.map((item) => {
+    let sanitizedItem = { ...item };
 
-    // Fetch the latest document for report date
-    const latestDoc = await ipReuseModel
-      .findOne()
-      .sort({ reportDate: -1 })
-      .exec();
-
-    if (!latestDoc) {
-      return res.status(404).json({
-        error: "No documents found to derive report date from.",
-      });
-    }
-
-    const reportDate = latestDoc.reportDate;
-
-    // Generate a new temporary ID
-    const existingTempIds = await ipReuseModel.find({
-      siDieId: { $regex: "^SI-DIE-TMP[0-9]{3}$" },
-    });
-
-    const maxNumber = existingTempIds
-      .map((doc) => parseInt(doc.siDieId.replace(/SI-DIE-TMP/, ""), 10))
-      .filter((num) => !isNaN(num))
-      .reduce((max, num) => Math.max(max, num), 0);
-
-    const newTempNumber = String(maxNumber + 1).padStart(3, "0");
-    const newTempId = `SI-DIE-TMP${newTempNumber}`;
-
-    let ipTypeValues = {};
-
-    // If copyFrom is provided, fetch the corresponding SOC
-    if (copyFrom) {
-      const copyFromDoc = await ipReuseModel
-        .findOne({ siDieId: copyFrom, isLive: true })
-        .sort({ reportDate: -1 })
-        .exec();
-
-      if (!copyFromDoc) {
-        return res.status(404).json({
-          error: `Document with SID ${copyFrom} not found.`,
+    // Filter through the object's keys once, avoid extra loops
+    Object.keys(sanitizedItem).forEach((key) => {
+      if (key.startsWith("ipType") && Array.isArray(sanitizedItem[key])) {
+        sanitizedItem[key] = sanitizedItem[key].map((obj) => {
+          const cellColor = obj.color.toLowerCase();
+          if (activeColors.includes(cellColor)) {
+            return obj;
+          }
+          // Return object with value and color white if no match
+          return { value: "", color: "ffffff" };
         });
       }
-
-      // Copy IP Type fields dynamically
-      Object.keys(copyFromDoc).forEach((key) => {
-        if (key.startsWith("ipType")) {
-          ipTypeValues[key] = copyFromDoc[key];
-        }
-      });
-    }
-
-    const newTempDoc = new ipReuseModel({
-      siDieId: newTempId,
-      soc: [{ value: name, color: "000000" }],
-      reportDate: reportDate,
-      isLive: true,
-      ...ipTypeValues, // Spread the copied IP Type fields here
     });
+    
+    // Return the sanitized item
+    return sanitizedItem;
+  });
 
-    await newTempDoc.save();
-
-    res.status(201).json({
-      message: "New TEMP ID created successfully",
-      newTempId,
-      document: newTempDoc,
+  const filteredRows = sanitizedRows.filter((row) => {
+    return Object.keys(row).some((key) => {
+      if (key.startsWith("ipType") && Array.isArray(row[key])) {
+        return row[key].some(
+          (obj) => obj.value !== "" && obj.color !== "ffffff"
+        );
+      }
+      return false;
     });
-  } catch (error) {
-    console.error("Error saving SOC:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+  });
+
+  const updatedData = isDataProvidersEnabled
+    ? [dataProviders, ...filteredRows]
+    : filteredRows;
+
+  setRowData(updatedData);
+  setIsColorFilterEnabled(true);
 };
