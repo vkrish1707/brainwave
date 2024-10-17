@@ -1,42 +1,51 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const router = express.Router();
-const IpReuseModel = mongoose.model('IpReuse'); // Assuming the model is defined as IpReuse
+const updateRowData = (rowData, action) => {
+  const gridApi = gridRef.current.api; // Access the grid API
 
-// The route to handle the request
-router.post('/replaceIpTypeValues', async (req, res) => {
-  try {
-    // Destructure the IDs from the request body
-    const { mainId, copyFromId } = req.body;
+  // Define the transaction object
+  let transaction = {};
 
-    // Fetch the main object using the mainId
-    const mainObject = await IpReuseModel.findById(mainId);
-    if (!mainObject) {
-      return res.status(404).json({ message: 'Main object not found' });
-    }
+  // Switch based on the action type: add, update, delete
+  switch (action) {
+    case 'add':
+      // Add the new row to the top (index 0)
+      transaction = {
+        add: [rowData], // rowData should be the object with the data to be added
+        addIndex: 0,    // This will place the row at the top
+      };
+      break;
 
-    // Fetch the copyFrom object using the copyFromId
-    const copyFromObject = await IpReuseModel.findById(copyFromId);
-    if (!copyFromObject) {
-      return res.status(404).json({ message: 'Copy-from object not found' });
-    }
+    case 'update':
+      // Update the row in place (it will automatically update where the row exists based on its ID)
+      transaction = {
+        update: [rowData], // rowData should have the updated values along with the row's ID
+      };
+      break;
 
-    // Iterate over the keys of the main object and replace values starting with "IP type"
-    Object.keys(mainObject).forEach((key) => {
-      if (key.startsWith('ipType') && copyFromObject[key]) {
-        // Replace the main object's IP type values with copy-from object's values
-        mainObject[key] = copyFromObject[key];
-      }
-    });
+    case 'delete':
+      // Remove the row
+      transaction = {
+        remove: [rowData], // rowData should include the ID of the row to be deleted
+      };
+      break;
 
-    // Save the updated main object back to the database
-    await mainObject.save();
-
-    return res.status(200).json({ message: 'IP type values replaced successfully', mainObject });
-  } catch (error) {
-    console.error('Error replacing IP type values:', error);
-    return res.status(500).json({ message: 'Server error', error });
+    default:
+      console.error('Invalid action provided:', action);
+      return;
   }
-});
 
-module.exports = router;
+  // Apply the transaction
+  gridApi.applyTransaction(transaction);
+
+  // Refresh the grid after changes if necessary
+  gridApi.refreshCells();
+};
+
+// Example usage:
+// For adding a new row
+updateRowData({ id: 'row_123', name: 'John', age: 30 }, 'add');
+
+// For updating an existing row
+updateRowData({ id: 'row_123', name: 'John Doe', age: 31 }, 'update');
+
+// For deleting a row
+updateRowData({ id: 'row_123' }, 'delete');
