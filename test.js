@@ -1,51 +1,13 @@
-const updateRowData = (rowData, action) => {
-  const gridApi = gridRef.current.api; // Access the grid API
+Here’s the commit message formatted with why and how points:
 
-  // Define the transaction object
-  let transaction = {};
+Why:
 
-  // Switch based on the action type: add, update, delete
-  switch (action) {
-    case 'add':
-      // Add the new row to the top (index 0)
-      transaction = {
-        add: [rowData], // rowData should be the object with the data to be added
-        addIndex: 0,    // This will place the row at the top
-      };
-      break;
+	•	We are providing the ability to copy IP values from one SoC to another SoC, enabling users to streamline the process of managing related SoCs.
+	•	When creating a new SoC, users should be able to copy values from any existing SoC, improving the speed and consistency of data entry.
+	•	Once an SoC is created or updated, the grid should automatically reflect the updated values, ensuring the user interface remains synchronized with the data.
 
-    case 'update':
-      // Update the row in place (it will automatically update where the row exists based on its ID)
-      transaction = {
-        update: [rowData], // rowData should have the updated values along with the row's ID
-      };
-      break;
+How:
 
-    case 'delete':
-      // Remove the row
-      transaction = {
-        remove: [rowData], // rowData should include the ID of the row to be deleted
-      };
-      break;
-
-    default:
-      console.error('Invalid action provided:', action);
-      return;
-  }
-
-  // Apply the transaction
-  gridApi.applyTransaction(transaction);
-
-  // Refresh the grid after changes if necessary
-  gridApi.refreshCells();
-};
-
-// Example usage:
-// For adding a new row
-updateRowData({ id: 'row_123', name: 'John', age: 30 }, 'add');
-
-// For updating an existing row
-updateRowData({ id: 'row_123', name: 'John Doe', age: 31 }, 'update');
-
-// For deleting a row
-updateRowData({ id: 'row_123' }, 'delete');
+	•	In the model component, I added a checkbox and a dropdown to select SoCs where the issue is true, allowing users to choose which SoC to copy from.
+	•	In the custom cell renderer, I updated the logic to handle the copied IP values for the grid display.
+	•	In the IP controller, I created a new API endpoint to handle the copying of IP type values from the selected SoC, which is used when creating or updating a SoC. This API ensures that the correct values are transferred from one SoC to another.
