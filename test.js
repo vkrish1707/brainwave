@@ -1,18 +1,45 @@
-const hideColumns = () => {
-  // Get the current column definitions
-  let newColumnDefs = [...columnDefs]; // Assuming columnDefs is your state
+import React from 'react';
 
-  // Loop through column definitions from index 4 to 20 and set hide to true
-  newColumnDefs = newColumnDefs.map((colDef, index) => {
-    if (index >= 4 && index <= 20) {
-      return { ...colDef, hide: true }; // Set the hide property to true for columns
-    }
-    return colDef;
-  });
-
-  // Update the column definitions with the hidden columns
-  setColumnDefs(newColumnDefs);
+const NodeBoxes = ({ nodes }) => {
+  return (
+    <div style={{ display: 'flex', gap: '5px', padding: '10px' }}>
+      {nodes.map((node, index) => (
+        <div
+          key={index}
+          style={{
+            width: '50px',
+            height: '50px',
+            backgroundColor: node.color,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            color: '#fff', // Text color is white for contrast
+            fontWeight: 'bold',
+            border: '1px solid #000', // Optional border to define the box
+          }}
+        >
+          {node.value}
+        </div>
+      ))}
+    </div>
+  );
 };
 
-// Example usage on a button click
-<Button onClick={hideColumns}>Hide Columns 4 to 20</Button>
+// Usage example
+const nodes = [
+  { color: '#0070C0', value: 'N7' },
+  { color: '#00B050', value: 'N6' },
+  { color: '#7030A0', value: 'N5' },
+  { color: '#FFC000', value: 'N4' },
+  { color: '#00B0F0', value: 'N3' },
+  { color: '#FFC0CB', value: 'N2' },
+];
+
+const App = () => (
+  <div>
+    <h2>Node Boxes</h2>
+    <NodeBoxes nodes={nodes} />
+  </div>
+);
+
+export default App;
