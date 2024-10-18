@@ -1,23 +1,24 @@
-import React from 'react';
+const nodes = [
+  { color: "#ff0000", value: "N1" },
+  { color: "#00ff00", value: "N2" },
+  { color: "#0000ff", value: "N3" },
+  { color: "#ffff00", value: "N4" },
+  { color: "#ff00ff", value: "N5" },
+  { color: "#00ffff", value: "N6" }
+];
 
-const NodeBoxes = ({ nodes }) => {
+const BoxDisplay = () => {
   return (
-    <div style={{ display: 'flex', gap: '5px', padding: '10px' }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      
+      {/* Triangle before the nodes */}
+      <div style={{ width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderBottom: "10px solid black", marginRight: "10px" }}>
+      </div>
+      <div style={{ fontSize: "12px", marginRight: "10px" }}>Last status</div>
+
+      {/* Mapping through nodes to display colored boxes */}
       {nodes.map((node, index) => (
-        <div
-          key={index}
-          style={{
-            width: '50px',
-            height: '50px',
-            backgroundColor: node.color,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            color: '#fff', // Text color is white for contrast
-            fontWeight: 'bold',
-            border: '1px solid #000', // Optional border to define the box
-          }}
-        >
+        <div key={index} style={{ backgroundColor: node.color, color: "#fff", width: "50px", height: "50px", display: "flex", justifyContent: "center", alignItems: "center" }}>
           {node.value}
         </div>
       ))}
@@ -25,21 +26,4 @@ const NodeBoxes = ({ nodes }) => {
   );
 };
 
-// Usage example
-const nodes = [
-  { color: '#0070C0', value: 'N7' },
-  { color: '#00B050', value: 'N6' },
-  { color: '#7030A0', value: 'N5' },
-  { color: '#FFC000', value: 'N4' },
-  { color: '#00B0F0', value: 'N3' },
-  { color: '#FFC0CB', value: 'N2' },
-];
-
-const App = () => (
-  <div>
-    <h2>Node Boxes</h2>
-    <NodeBoxes nodes={nodes} />
-  </div>
-);
-
-export default App;
+export default BoxDisplay;
