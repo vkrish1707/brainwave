@@ -1,29 +1,30 @@
-const nodes = [
-  { color: "#ff0000", value: "N1" },
-  { color: "#00ff00", value: "N2" },
-  { color: "#0000ff", value: "N3" },
-  { color: "#ffff00", value: "N4" },
-  { color: "#ff00ff", value: "N5" },
-  { color: "#00ffff", value: "N6" }
-];
+const fetchAllData = async () => {
+    try {
+        setIsLoading(true);
 
-const BoxDisplay = () => {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      
-      {/* Triangle before the nodes */}
-      <div style={{ width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderBottom: "10px solid black", marginRight: "10px" }}>
-      </div>
-      <div style={{ fontSize: "12px", marginRight: "10px" }}>Last status</div>
+        // Initiate both API calls simultaneously
+        const [dataResponse, suggestionsResponse] = await Promise.all([
+            callDB({ reportDate: "" }, "ipReuse", "GET", "api").catch(err => {
+                console.error("Data API failed", err);
+                return { data: [] }; // return empty response to avoid blocking
+            }),
+            callDB({ colIndex: 1 }, "getsoc", "POST", "api").catch(err => {
+                console.error("Suggestions API failed", err);
+                return { suggestions: [] }; // return empty suggestions to avoid blocking
+            })
+        ]);
 
-      {/* Mapping through nodes to display colored boxes */}
-      {nodes.map((node, index) => (
-        <div key={index} style={{ backgroundColor: node.color, color: "#fff", width: "50px", height: "50px", display: "flex", justifyContent: "center", alignItems: "center" }}>
-          {node.value}
-        </div>
-      ))}
-    </div>
-  );
+        // Check and process data only if responses contain data
+        if (dataResponse.data.length && suggestionsResponse.suggestions.length) {
+            setBackendData(dataResponse.data);
+            setSuggestions(suggestionsResponse.suggestions);
+            setGridConfig(dataResponse.data);  // Set grid config only after both calls are successful
+            setAction("actions");
+        }
+
+    } catch (error) {
+        console.error("ERROR fetching data", error);
+    } finally {
+        setIsLoading(false); // Ensure loading is false after both calls
+    }
 };
-
-export default BoxDisplay;
