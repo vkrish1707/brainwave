@@ -1,26 +1,49 @@
-const applyYearFilter = async (startYear, endYear) => {
-  const gridApi = gridRef.current.api;
-  const allRowData = []; // Array to hold all data in the grid
+import React, { useRef } from "react";
+import html2canvas from "html2canvas";
+import { AgGridReact } from "ag-grid-react";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 
-  // Extract all data from the grid and store it in allRowData
-  gridApi.forEachNodeAfterFilterAndSort((node) => {
-    allRowData.push(node.data);
-  });
+const MyGridComponent = () => {
+  const gridRef = useRef(null);
+  const canvasRef = useRef(null);
 
-  // Convert startYear and endYear to Date objects
-  const startDate = new Date(startYear, 0, 1);
-  const endDate = new Date(endYear, 11, 31);
+  const captureGrid = async () => {
+    if (gridRef.current) {
+      // Capture the AG Grid area as an image
+      const canvas = await html2canvas(gridRef.current, {
+        useCORS: true,
+        allowTaint: true,
+      });
+      const imgData = canvas.toDataURL("image/png");
 
-  // Filter the data manually, excluding row 0
-  const filteredData = allRowData.filter((row, index) => {
-    if (index === 0) return true; // Always include row 0
-    const rowDate = new Date(row.por); // Assuming 'por' is your date field
-    return rowDate >= startDate && rowDate <= endDate;
-  });
+      // Draw the captured image onto the HTML canvas
+      const context = canvasRef.current.getContext("2d");
+      const img = new Image();
+      img.src = imgData;
+      img.onload = () => {
+        context.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+    }
+  };
 
-  // Apply the filtered data back to the grid
-  gridApi.setRowData(filteredData);
-
-  // Optionally update any UI elements or state if needed
-  setIsFilterEnabled(startYear !== yearRange.startYear || endYear !== yearRange.endYear);
+  return (
+    <div>
+      <button onClick={captureGrid}>Capture Grid</button>
+      <div
+        ref={gridRef}
+        className="ag-theme-alpine"
+        style={{ height: 400, width: 600 }}
+      >
+        <AgGridReact
+          // Your AG Grid properties here
+          rowData={[{ col1: "Row 1", col2: "Data" }, { col1: "Row 2", col2: "More Data" }]}
+          columnDefs={[{ headerName: "Column 1", field: "col1" }, { headerName: "Column 2", field: "col2" }]}
+        />
+      </div>
+      <canvas ref={canvasRef} width={600} height={400} style={{ display: "block", marginTop: "20px" }}></canvas>
+    </div>
+  );
 };
+
+export default MyGridComponent;
