@@ -1,39 +1,26 @@
-useEffect(() => {
-    // First call FetchSuggestions
-    fetchSuggestions();
+const applyYearFilter = async (startYear, endYear) => {
+  const gridApi = gridRef.current.api;
+  const allRowData = []; // Array to hold all data in the grid
 
-    // Set a delay of 1 second (1000ms) to wait for the suggestions state to be set
-    const suggestionCheckInterval = setInterval(() => {
-        // Check if suggestions are set and have length greater than 0
-        if (suggestions.length > 0) {
-            // Call FetchData after confirming the suggestions are populated
-            fetchData();
-            clearInterval(suggestionCheckInterval); // Clear the interval once FetchData is called
-        }
-    }, 1000); // 1-second interval to check the suggestions state
+  // Extract all data from the grid and store it in allRowData
+  gridApi.forEachNodeAfterFilterAndSort((node) => {
+    allRowData.push(node.data);
+  });
 
-    // Cleanup function to clear interval on component unmount
-    return () => clearInterval(suggestionCheckInterval);
+  // Convert startYear and endYear to Date objects
+  const startDate = new Date(startYear, 0, 1);
+  const endDate = new Date(endYear, 11, 31);
 
-}, [suggestions]); // Dependency array, triggers when suggestions change
+  // Filter the data manually, excluding row 0
+  const filteredData = allRowData.filter((row, index) => {
+    if (index === 0) return true; // Always include row 0
+    const rowDate = new Date(row.por); // Assuming 'por' is your date field
+    return rowDate >= startDate && rowDate <= endDate;
+  });
 
-// Function to fetch suggestions
-const fetchSuggestions = () => {
-    callDB({ colIndex: 1 }, "getsoc", "POST", "api", (response) => {
-        if (response) {
-            setSuggestions(response.suggestions);
-        }
-    });
-};
+  // Apply the filtered data back to the grid
+  gridApi.setRowData(filteredData);
 
-// Function to fetch data (called after suggestions are populated)
-const fetchData = () => {
-    callDB({ reportDate: "" }, "ipReuse", "GET", "api", (response) => {
-        if (response.data) {
-            setBackendData(response.data);
-            setGridConfig(response.data);
-            setAction("actions");
-            setIsLoading(false);
-        }
-    });
+  // Optionally update any UI elements or state if needed
+  setIsFilterEnabled(startYear !== yearRange.startYear || endYear !== yearRange.endYear);
 };
