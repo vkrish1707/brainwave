@@ -99,3 +99,33 @@ const MyGridComponent = () => {
 };
 
 export default MyGridComponent;
+
+
+
+
+const applyYearFilter = async (startYear, endYear) => {
+  const gridApi = gridRef.current.api;
+
+  // Define the start and end dates for the range filter
+  const startDate = new Date(startYear, 0, 1);
+  const endDate = new Date(endYear, 11, 31);
+
+  // Set custom filter condition on 'POR' column
+  gridApi.getFilterInstance('por', (filterInstance) => {
+    filterInstance.setModel({
+      type: 'custom',
+      filterCallback: (params) => {
+        // Always include row at index 0 with empty 'POR'
+        if (params.node.rowIndex === 0 && !params.data.por) {
+          return true;
+        }
+        // Apply date range filter for other rows
+        const porDate = new Date(params.data.por);
+        return porDate >= startDate && porDate <= endDate;
+      }
+    });
+  });
+
+  // Trigger filter change
+  gridApi.onFilterChanged();
+};
