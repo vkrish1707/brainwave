@@ -1,138 +1,156 @@
-import React, { useRef, useState } from "react";
-import html2canvas from "html2canvas";
-import { AgGridReact } from "ag-grid-react";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+import React, { useState } from 'react';
+import { Button, Box, Typography, TextField, List, ListItem, ListItemText, IconButton } from '@mui/material';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { Search } from '@mui/icons-material';
+import axios from 'axios';
 
-const MyGridComponent = () => {
-  const gridRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const initialData = [
+  { sid: 'SID001', name: 'Item 1' },
+  { sid: 'SID002', name: 'Item 2' },
+  { sid: 'SID003', name: 'Item 3' },
+];
 
-  const captureGrid = async () => {
-    if (gridRef.current) {
-      // Capture the AG Grid area as an image
-      const canvas = await html2canvas(gridRef.current, {
-        useCORS: true,
-        allowTaint: true,
-      });
-      const imgData = canvas.toDataURL("image/png");
+const AdminPanel = () => {
+  const [isPanelVisible, setIsPanelVisible] = useState(false);
+  const [items, setItems] = useState(initialData);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
 
-      // Draw the captured image onto the HTML canvas
-      const context = canvasRef.current.getContext("2d");
-      const img = new Image();
-      img.src = imgData;
-      img.onload = () => {
-        context.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
+  const togglePanel = () => {
+    setIsPanelVisible(!isPanelVisible);
+  };
 
-      // Show the modal with the canvas
-      setIsModalOpen(true);
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+
+    const reorderedItems = Array.from(items);
+    const [removed] = reorderedItems.splice(result.source.index, 1);
+    reorderedItems.splice(result.destination.index, 0, removed);
+
+    setItems(reorderedItems);
+  };
+
+  const handleSearch = async (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (query) {
+      try {
+        // Replace 'your-search-api-endpoint' with the actual API endpoint
+        const response = await axios.get(`your-search-api-endpoint?q=${query}`);
+        const apiResults = response.data;
+        
+        // Check if items from API are already in the list
+        const updatedResults = apiResults.map((result) => ({
+          ...result,
+          alreadyAdded: items.some((item) => item.sid === result.sid),
+        }));
+        setSearchResults(updatedResults);
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+      }
+    } else {
+      setSearchResults([]);
     }
   };
 
-  const downloadImage = () => {
-    const link = document.createElement("a");
-    link.href = canvasRef.current.toDataURL("image/png");
-    link.download = "captured_grid.png";
-    link.click();
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
+  const addItem = (item) => {
+    setItems([...items, item]);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   return (
     <div>
-      <button onClick={captureGrid}>Capture Grid</button>
-      <div
-        ref={gridRef}
-        className="ag-theme-alpine"
-        style={{ height: 400, width: 600 }}
-      >
-        <AgGridReact
-          // Your AG Grid properties here
-          rowData={[
-            { col1: "Row 1", col2: "Data" },
-            { col1: "Row 2", col2: "More Data" },
-          ]}
-          columnDefs={[
-            { headerName: "Column 1", field: "col1" },
-            { headerName: "Column 2", field: "col2" },
-          ]}
-        />
-      </div>
+      <Button onClick={togglePanel} variant="contained" color="primary">
+        {isPanelVisible ? 'Hide Admin Panel' : 'Show Admin Panel'}
+      </Button>
+      {isPanelVisible && (
+        <Box sx={{ display: 'flex', p: 2, mt: 2, border: '1px solid #ddd', borderRadius: '8px' }}>
+          <Box sx={{ flex: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Drag and Drop List
+            </Typography>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="droppable">
+                {(provided) => (
+                  <List {...provided.droppableProps} ref={provided.innerRef}>
+                    {items.map((item, index) => (
+                      <Draggable key={item.sid} draggableId={item.sid} index={index}>
+                        {(provided) => (
+                          <ListItem
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            sx={{ mb: 1, border: '1px solid #ddd', borderRadius: '4px' }}
+                          >
+                            <ListItemText
+                              primary={<Typography variant="h6">{item.name}</Typography>}
+                              secondary={<Typography variant="body2">{item.sid}</Typography>}
+                            />
+                          </ListItem>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </List>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </Box>
 
-      {/* Modal for showing the captured canvas */}
-      {isModalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            top: "0",
-            left: "0",
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "20px",
-              borderRadius: "8px",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-              maxWidth: "90%",
-            }}
-          >
-            <h3>Captured Grid</h3>
-            <canvas ref={canvasRef} width={600} height={400} style={{ display: "block", marginBottom: "20px" }}></canvas>
-            <button onClick={downloadImage} style={{ marginRight: "10px" }}>Download</button>
-            <button onClick={closeModal}>Close</button>
-          </div>
-        </div>
+          <Box sx={{ flex: 1, ml: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Search and Add Items
+            </Typography>
+            <TextField
+              variant="outlined"
+              placeholder="Search by SID"
+              value={searchQuery}
+              onChange={handleSearch}
+              fullWidth
+              InputProps={{
+                endAdornment: (
+                  <IconButton>
+                    <Search />
+                  </IconButton>
+                ),
+              }}
+              sx={{ mb: 2 }}
+            />
+            <List>
+              {searchResults.map((result) => (
+                <ListItem
+                  key={result.sid}
+                  button
+                  onClick={() => !result.alreadyAdded && addItem(result)}
+                  sx={{
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    mb: 1,
+                    opacity: result.alreadyAdded ? 0.5 : 1,
+                    cursor: result.alreadyAdded ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <ListItemText
+                    primary={<Typography variant="body1">{result.name}</Typography>}
+                    secondary={
+                      result.alreadyAdded ? (
+                        <Typography variant="body2" color="textSecondary">
+                          {result.sid} (Already Added)
+                        </Typography>
+                      ) : (
+                        <Typography variant="body2">{result.sid}</Typography>
+                      )
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </Box>
       )}
     </div>
   );
 };
 
-export default MyGridComponent;
-
-const applyYearFilter = async (startYear, endYear) => {
-  const gridApi = gridRef.current.api;
-  
-  // Prepare dates for the filter
-  const startDate = new Date(startYear, 0, 1);
-  const endDate = new Date(endYear, 11, 31);
-
-  // Define the filter model with conditions to exclude row 0 and handle date range for other rows
-  gridApi.setFilterModel({
-    POR: {
-      filterType: 'date',
-      type: 'inRange',
-      dateFrom: startDate.toISOString().split("T")[0],
-      dateTo: endDate.toISOString().split("T")[0],
-      operator: 'OR',
-      conditions: [
-        {
-          // Condition to include row 0 based on an empty or specific field value
-          filterType: 'date',
-          type: 'blank', // or any condition that matches row 0
-        },
-        {
-          // Condition to apply date range for other rows
-          filterType: 'date',
-          type: 'inRange',
-          dateFrom: startDate.toISOString().split("T")[0],
-          dateTo: endDate.toISOString().split("T")[0],
-        }
-      ]
-    }
-  });
-
-  gridApi.onFilterChanged();
-};
-
-
+export default AdminPanel;
