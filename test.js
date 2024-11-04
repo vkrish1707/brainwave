@@ -1,57 +1,50 @@
-import React, { useRef, useEffect } from "react";
-import { AgGridReact } from "ag-grid-react";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+import XLSX from "xlsx";
 
-const MyGridComponent = () => {
-  const gridRef = useRef(null);
+function exportToExcel(data) {
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+  const merge = [];
 
-  const onGridReady = (params) => {
-    const gridApi = params.api;
-    const gridColumnApi = params.columnApi;
+  // Extract columns
+  const columns = Object.keys(data[0]);
 
-    // Auto-size the first column based on its content
-    gridColumnApi.autoSizeColumn("col1");
+  // Prepare headers
+  wsData.push(columns.map((key) => key.toUpperCase()));
 
-    // Get the total available width for the grid
-    const availableWidth = gridApi.gridPanel.eCenterContainer.clientWidth;
+  // Fill in data
+  data.forEach((row, rowIndex) => {
+    const rowData = [];
+    columns.forEach((col, colIndex) => {
+      if (typeof row[col] === "object" && row[col] !== null) {
+        rowData.push(row[col].value || "");
 
-    // Get the width of the first column after auto-sizing it
-    const firstColumnWidth = gridColumnApi.getColumnState().find(col => col.colId === "col1").width;
+        // Set the color for the cell
+        const cellAddress = XLSX.utils.encode_cell({ r: rowIndex + 1, c: colIndex });
+        wsData[cellAddress] = { s: { fill: { fgColor: { rgb: row[col].color.replace("#", "") } } } };
 
-    // Calculate the remaining width for other columns
-    const remainingWidth = availableWidth - firstColumnWidth;
-
-    // Get the list of other columns (excluding the first column)
-    const otherColumns = gridColumnApi.getAllColumns().filter(col => col.getColId() !== "col1");
-
-    // Set the width of each remaining column proportionally
-    const eachColumnWidth = remainingWidth / otherColumns.length;
-    otherColumns.forEach(column => {
-      gridColumnApi.setColumnWidth(column, eachColumnWidth);
+        // If there are multiple values, merge cells
+        if (row[col].comments && row[col].comments.length > 1) {
+          merge.push({
+            s: { r: rowIndex + 1, c: colIndex },
+            e: { r: rowIndex + row[col].comments.length, c: colIndex },
+          });
+        }
+      } else {
+        rowData.push(row[col]);
+      }
     });
-  };
+    wsData.push(rowData);
+  });
 
-  return (
-    <div
-      className="ag-theme-alpine"
-      style={{ height: "100vh", width: "100%" }}
-    >
-      <AgGridReact
-        ref={gridRef}
-        onGridReady={onGridReady}
-        rowData={[
-          { col1: "Row 1", col2: "Some data", col3: "More data" },
-          { col1: "Row 2", col2: "Another data", col3: "Even more data" },
-        ]}
-        columnDefs={[
-          { headerName: "Column 1", field: "col1", colId: "col1" }, // First column
-          { headerName: "Column 2", field: "col2" },
-          { headerName: "Column 3", field: "col3" },
-        ]}
-      />
-    </div>
-  );
-};
+  // Create worksheet
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-export default MyGridComponent;
+  // Apply merges
+  ws["!merges"] = merge;
+
+  // Add the worksheet to the workbook
+  XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+  // Export the workbook
+  XLSX.writeFile(wb, "DataExport.xlsx");
+}
