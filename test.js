@@ -1,39 +1,55 @@
 import * as XLSX from 'xlsx';
 
-// Sample function to export data using XLSX
 const exportToExcel = (data) => {
   const worksheetData = [];
+  const mergeCells = [];
 
   // Generate headers from the first item’s keys
-  const headers = Object.keys(data[0]);
+  const headers = Object.keys(data[0]).filter(key => key !== 'max_Objects');
   worksheetData.push(headers);
 
-  // Generate rows with data and apply color background if applicable
-  data.forEach((item) => {
-    const row = headers.map((key) => {
-      // Extract color and value
+  // Populate rows based on data
+  data.forEach((item, rowIndex) => {
+    const row = headers.map((key, colIndex) => {
       const cellData = item[key];
-      const cellValue = cellData.value || '';
-      const cellColor = cellData.color ? cellData.color : 'FFFFFF'; // Use default if no color provided
+      const maxCount = item.max_Objects || 1;
 
-      // Return cell information in a structure
-      return { v: cellValue, color: cellColor };
+      // If cellData is an array of objects, extract values and colors
+      if (Array.isArray(cellData)) {
+        const cellValues = cellData.map(subItem => subItem.value).join(', ');
+        const cellColor = cellData[0]?.color || 'FFFFFF';
+
+        // If max_Objects > 1, mark cells for merging
+        if (maxCount > 1 && rowIndex % maxCount === 0) {
+          const endRow = rowIndex + maxCount - 1;
+          mergeCells.push({
+            s: { r: rowIndex + 1, c: colIndex },
+            e: { r: endRow + 1, c: colIndex },
+          });
+        }
+
+        return { v: cellValues, color: cellColor };
+      }
+      // If cellData is a simple string, boolean, or number, use it directly
+      return { v: cellData, color: 'FFFFFF' };
     });
-
     worksheetData.push(row);
   });
 
-  // Create the workbook and worksheet
+  // Create the worksheet and set up merges
   const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-  // Set cell styling with colors
+  // Apply merge configuration
+  worksheet['!merges'] = mergeCells;
+
+  // Set cell styles for colors
   worksheetData.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
       const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
       if (worksheet[cellAddress]) {
         worksheet[cellAddress].s = {
           fill: {
-            fgColor: { rgb: cell.color }, // Apply color directly without hashtag
+            fgColor: { rgb: cell.color },
           },
         };
       }
@@ -48,17 +64,30 @@ const exportToExcel = (data) => {
   XLSX.writeFile(workbook, 'exported_data.xlsx');
 };
 
-// Sample data
+// Sample data to test
 const sampleData = [
-  {
-    column1: { value: 'Item 1', color: 'FF0000' }, // Color in hex without #
-    column2: { value: 'Description 1', color: '00FF00' },
-  },
-  {
-    column1: { value: 'Item 2', color: '0000FF' },
-    column2: { value: 'Description 2', color: 'FFFF00' },
-  },
+    {
+      column1: [{ value: 'Merged Item 1', color: 'FF0000' }], 
+      column2: 'Simple Text',
+      column3: true,
+      column4: 123,
+      max_Objects: 1
+    },
+    {
+      column1: [{ value: 'Merged Item 2', color: '00FF00' }, { value: 'Merged Item 3', color: '00FF00' }],
+      column2: [{ value: 'Text with color', color: '0000FF' }],
+      column3: false,
+      column4: 456,
+      max_Objects: 2
+    },
+    {
+      column1: 'Non-merged Text',
+      column2: 'Another Text',
+      column3: [{ value: 'Boolean Text', color: 'FFFF00' }],
+      column4: 789,
+      max_Objects: 1
+    },
 ];
 
-// Use the function to export data
+// Call the function to export
 exportToExcel(sampleData);
