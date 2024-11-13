@@ -1,1 +1,17 @@
-“Hi there! I’m currently out of the office and unavailable today and tomorrow. I’ll be back on November 11th and will respond to any messages as soon as possible upon my return. Thank you for your patience!”
+const adjustColumnSizes = (gridApi) => {
+  // Get all column IDs
+  const allColumnIds = gridApi.getAllColumns().map((col) => col.getColId());
+
+  // Auto-size the first column
+  const firstColumnId = allColumnIds[0]; // Assuming the first column needs auto-sizing
+  gridApi.autoSizeColumns([firstColumnId]);
+
+  // Apply sizeColumnsToFit for remaining columns
+  const otherColumns = allColumnIds.slice(1); // Exclude the first column
+  if (otherColumns.length > 0) {
+    // Temporarily hide the first column, then sizeColumnsToFit for the rest
+    gridApi.setColumnVisible(firstColumnId, false); // Hide first column
+    gridApi.sizeColumnsToFit(); // Fit remaining visible columns
+    gridApi.setColumnVisible(firstColumnId, true); // Show first column back
+  }
+};
