@@ -1,35 +1,46 @@
-const adjustGridColumns = (gridApi, gridDiv) => {
-  const allColumnIds = gridApi.getAllColumns().map((col) => col.getColId());
-  const firstColumnId = allColumnIds[0]; // Assume the first column is the one to auto-size
+import React, { useState } from "react";
+import { Backdrop, CircularProgress, Button, Box } from "@mui/material";
 
-  // Step 1: Auto-size the first column
-  gridApi.autoSizeColumns([firstColumnId]);
+const MyComponent = () => {
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Step 2: Size remaining columns to fit
-  const remainingColumns = allColumnIds.slice(1);
-  if (remainingColumns.length > 0) {
-    gridApi.setColumnVisible(firstColumnId, false); // Temporarily hide the first column
-    gridApi.sizeColumnsToFit(); // Fit remaining visible columns
-    gridApi.setColumnVisible(firstColumnId, true); // Show the first column again
-  }
+  const handleLoading = () => {
+    setIsLoading(true);
 
-  // Step 3: Adjust grid container width dynamically
-  setTimeout(() => {
-    const totalColumnWidth = gridApi.getAllColumns().reduce((acc, col) => acc + col.getActualWidth(), 0);
-    gridDiv.style.width = `${totalColumnWidth}px`; // Set grid width dynamically
-    gridApi.sizeColumnsToFit(); // Reapply column size fit
-  }, 0);
+    // Simulate an async operation
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // Stops loading after 3 seconds
+  };
+
+  return (
+    <Box sx={{ position: "relative", padding: "20px", height: "300px", border: "1px solid #ccc" }}>
+      {/* Overlay Backdrop */}
+      <Backdrop
+        sx={{
+          color: "#fff",
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+        }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
+      {/* Component Content */}
+      <Box>
+        <h2>My Component</h2>
+        <p>This is the content of the component. Try clicking the button below!</p>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleLoading}
+          disabled={isLoading}
+        >
+          Start Loading
+        </Button>
+      </Box>
+    </Box>
+  );
 };
 
-<AgGridReact
-  onGridReady={(params) => {
-    const gridApi = params.api;
-    const gridDiv = document.getElementById('gridDiv'); // Your grid's container div
-    adjustGridColumns(gridApi, gridDiv);
-  }}
-  columnDefs={columnDefs}
-  rowData={rowData}
-  defaultColDef={{
-    resizable: true, // Ensure columns are resizable
-  }}
-/>
+export default MyComponent;
