@@ -5,26 +5,22 @@ const processDataRow = (worksheet, item, startRow, maxRowSpan) => {
     if (Array.isArray(cellData)) {
       const rowSpan = cellData.length;
 
-      if (rowSpan === maxRowSpan) {
-        // If the rowSpan matches maxRowSpan, process normally
-        cellData.forEach((data, index) => {
-          const cell = worksheet.getCell(startRow + index, columnNumber);
-          applyCellStyles(cell, index === 0 ? data.value : '', data.color);
-        });
-      } else {
-        // Fill with colors but only show the value in the first cell
-        cellData.forEach((data, index) => {
-          const cell = worksheet.getCell(startRow + index, columnNumber);
-          applyCellStyles(cell, index === 0 ? data.value : '', data.color);
-        });
+      // Merge cells for the column
+      worksheet.mergeCells(
+        startRow,
+        columnNumber,
+        startRow + maxRowSpan - 1,
+        columnNumber
+      );
 
-        // Fill remaining cells with just colors
-        const lastColor = cellData[cellData.length - 1].color;
+      // Handle the first cell
+      const firstCell = worksheet.getCell(startRow, columnNumber);
+      applyCellStyles(firstCell, cellData[0].value, cellData[0].color);
 
-        for (let i = rowSpan; i < maxRowSpan; i++) {
-          const cell = worksheet.getCell(startRow + i, columnNumber);
-          applyCellStyles(cell, '', lastColor);
-        }
+      // Fill remaining rows with background color
+      for (let i = 1; i < maxRowSpan; i++) {
+        const cell = worksheet.getCell(startRow + i, columnNumber);
+        applyCellStyles(cell, '', cellData[Math.min(i, rowSpan - 1)].color);
       }
     } else {
       // Non-array values are treated as single cells
