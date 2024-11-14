@@ -1,37 +1,27 @@
-const processDataRow = (worksheet, item, startRow, maxRowSpan) => {
-  Object.entries(item).forEach(([key, cellData], columnIndex) => {
-    const columnNumber = columnIndex + 1;
+const data = [
+  { id: 1, SOC: "Value1", unwantedKey1: "removeMe", unwantedKey2: "removeThisToo" },
+  { id: 2, SOC: "Value2", unwantedKey1: "removeMe", unwantedKey2: "removeThisToo" },
+  { id: 3, SOC: "Value3", unwantedKey1: "removeMe", unwantedKey2: "removeThisToo" }
+];
 
-    if (Array.isArray(cellData)) {
-      const rowSpan = cellData.length;
+// Keys to remove
+const keysToRemove = ["unwantedKey1", "unwantedKey2"];
 
-      // Merge cells for the column
-      worksheet.mergeCells(
-        startRow,
-        columnNumber,
-        startRow + maxRowSpan - 1,
-        columnNumber
-      );
+// Transform SOC to array and remove unwanted keys
+const updatedData = data.map(item => {
+  // Create a new object without the unwanted keys
+  const filteredItem = Object.keys(item)
+    .filter(key => !keysToRemove.includes(key)) // Exclude unwanted keys
+    .reduce((acc, key) => {
+      acc[key] = item[key]; // Copy over allowed keys
+      return acc;
+    }, {});
 
-      // Handle the first cell
-      const firstCell = worksheet.getCell(startRow, columnNumber);
-      applyCellStyles(firstCell, cellData[0].value, cellData[0].color);
+  // Update SOC to be an array of objects
+  return {
+    ...filteredItem,
+    SOC: [{ value: item.SOC }]
+  };
+});
 
-      // Fill remaining rows with background color
-      for (let i = 1; i < maxRowSpan; i++) {
-        const cell = worksheet.getCell(startRow + i, columnNumber);
-        applyCellStyles(cell, '', cellData[Math.min(i, rowSpan - 1)].color);
-      }
-    } else {
-      // Non-array values are treated as single cells
-      worksheet.mergeCells(
-        startRow,
-        columnNumber,
-        startRow + maxRowSpan - 1,
-        columnNumber
-      );
-      const cell = worksheet.getCell(startRow, columnNumber);
-      applyCellStyles(cell, cellData, null);
-    }
-  });
-};
+console.log(updatedData);
