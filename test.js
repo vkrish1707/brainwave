@@ -6,25 +6,24 @@ const processDataRow = (worksheet, item, startRow, maxRowSpan) => {
       const rowSpan = cellData.length;
 
       if (rowSpan === maxRowSpan) {
-        // Fill all cells normally if maxRowSpan matches the data length
+        // If the rowSpan matches maxRowSpan, process normally
         cellData.forEach((data, index) => {
           const cell = worksheet.getCell(startRow + index, columnNumber);
-          applyCellStyles(cell, data.value, data.color);
+          applyCellStyles(cell, index === 0 ? data.value : '', data.color);
         });
       } else {
-        // Fill existing cells and propagate the last value to remaining cells
+        // Fill with colors but only show the value in the first cell
         cellData.forEach((data, index) => {
           const cell = worksheet.getCell(startRow + index, columnNumber);
-          applyCellStyles(cell, data.value, data.color);
+          applyCellStyles(cell, index === 0 ? data.value : '', data.color);
         });
 
-        // Propagate the last value to fill the remaining cells
-        const lastValue = cellData[cellData.length - 1].value;
+        // Fill remaining cells with just colors
         const lastColor = cellData[cellData.length - 1].color;
 
         for (let i = rowSpan; i < maxRowSpan; i++) {
           const cell = worksheet.getCell(startRow + i, columnNumber);
-          applyCellStyles(cell, lastValue, lastColor);
+          applyCellStyles(cell, '', lastColor);
         }
       }
     } else {
