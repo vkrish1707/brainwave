@@ -48,3 +48,17 @@ const restoreGridStateFromURL = () => {
     }
   }
 };
+type
+    if (gridRef.current) {
+      const headerCells = document.querySelectorAll(
+        ".ag-header-cell-label"
+      );
+
+      headerCells.forEach((cell) => {
+        cell.style.fontSize =
+          newViewType === "infra" ? "25px" : "18px";
+        cell.style.textAlign = "center";
+      });
+    }
+
+
