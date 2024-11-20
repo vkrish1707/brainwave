@@ -1,26 +1,50 @@
-const handleExportExcel = () => {
-  try {
-    const gridApi = gridRef.current.api;
-    const columnApi = gridRef.current.columnApi;
+const onGridStateChange = () => {
+  const gridApi = gridRef.current?.api;
 
-    // Collect visible columns
-    const visibleColumns = columnApi
-      .getAllDisplayedColumns()
-      .map((col) => col.colId);
+  if (gridApi) {
+    // Get the current filters
+    const filters = gridApi.getFilterModel();
 
-    // Collect filtered rows
-    const filteredRows = [];
-    gridApi.forEachNodeAfterFilter((node) => {
-      const filteredRow = {};
-      visibleColumns.forEach((colId) => {
-        filteredRow[colId] = node.data[colId];
+    // Get visible columns
+    const visibleColumns = gridApi.getAllColumns()
+      .filter((col) => col.isVisible())
+      .map((col) => col.getColId());
+
+    // Add filters and visible columns to the URL
+    const queryParams = new URLSearchParams(window.location.search);
+
+    queryParams.set("filters", JSON.stringify(filters)); // Save filters as a string
+    queryParams.set("visibleColumns", JSON.stringify(visibleColumns)); // Save visible columns as a string
+
+    const newUrl = `${window.location.pathname}?${queryParams.toString()}`;
+    window.history.replaceState(null, "", newUrl); // Update the URL without refreshing the page
+  }
+};
+
+const restoreGridStateFromURL = () => {
+  const gridApi = gridRef.current?.api;
+
+  if (gridApi) {
+    const queryParams = new URLSearchParams(window.location.search);
+
+    // Retrieve filters and visible columns from URL
+    const filters = queryParams.get("filters");
+    const visibleColumns = queryParams.get("visibleColumns");
+
+    // Apply filters
+    if (filters) {
+      gridApi.setFilterModel(JSON.parse(filters));
+    }
+
+    // Apply column visibility
+    if (visibleColumns) {
+      const allColumns = gridApi.getAllColumns();
+      const visibleColumnIds = JSON.parse(visibleColumns);
+
+      allColumns.forEach((col) => {
+        const isVisible = visibleColumnIds.includes(col.getColId());
+        gridApi.setColumnVisible(col.getColId(), isVisible);
       });
-      filteredRows.push(filteredRow);
-    });
-
-    // Generate Excel using the filtered and visible data
-    generateExcel(filteredRows);
-  } catch (error) {
-    console.error("Error exporting filtered grid data to Excel:", error);
+    }
   }
 };
