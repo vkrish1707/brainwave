@@ -1,3 +1,10 @@
+
+function getVisibleColumns(gridApi) {
+  const visibleColumns = gridApi.getAllColumns()
+    .filter((col) => col.isVisible())
+    .map((col) => col.getColId());
+  return visibleColumns;
+}
 function encrypt(data) {
   const jsonString = JSON.stringify(data);
   let base64 = btoa(jsonString); // Convert to Base64
@@ -14,6 +21,8 @@ function updateUrlWithEncryptedColumns(gridApi) {
     window.history.replaceState(null, "", url);
     return;
   }
+  
+  
 
   const encryptedColumns = encrypt(visibleColumns);
 
