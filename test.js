@@ -1,71 +1,45 @@
+const hashToDataMap = new Map(); // Store hash-to-data mapping (simulating backend storage)
 
-function getVisibleColumns(gridApi) {
-  const visibleColumns = gridApi.getAllColumns()
-    .filter((col) => col.isVisible())
-    .map((col) => col.getColId());
-  return visibleColumns;
-}
-function encrypt(data) {
+// Function to generate a 16-character hash for the given data
+async function generateShortHash(data) {
   const jsonString = JSON.stringify(data);
-  let base64 = btoa(jsonString); // Convert to Base64
-  base64 = base64.replace(/=/g, "").slice(0, 16); // Trim to 16 characters
-  return base64;
-}
-function updateUrlWithEncryptedColumns(gridApi) {
-  const visibleColumns = getVisibleColumns(gridApi);
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(jsonString);
 
-  if (visibleColumns.length === gridApi.getAllColumns().length) {
-    // All columns visible; no need to add to URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete("columns");
-    window.history.replaceState(null, "", url);
-    return;
-  }
-  
-  
+  // Generate SHA-256 hash
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
 
-  const encryptedColumns = encrypt(visibleColumns);
-
-  const url = new URL(window.location.href);
-  url.searchParams.set("columns", encryptedColumns);
-  window.history.replaceState(null, "", url);
-}
-function restoreColumnsFromUrl(gridApi) {
-  const url = new URL(window.location.href);
-  const encryptedColumns = url.searchParams.get("columns");
-
-  if (!encryptedColumns) {
-    return; // No specific columns in URL, all columns remain visible
-  }
-
-  const visibleColumns = decrypt(encryptedColumns);
-
-  if (!visibleColumns) {
-    console.error("Failed to restore columns from URL");
-    return;
-  }
-
-  const allColumns = gridApi.getAllColumns();
-
-  allColumns.forEach((col) => {
-    const isVisible = visibleColumns.includes(col.getColId());
-    gridApi.setColumnVisible(col.getColId(), isVisible);
-  });
+  // Convert hash buffer to a Base64 string and truncate it to 16 characters
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const base64Hash = btoa(String.fromCharCode.apply(null, hashArray));
+  return base64Hash.slice(0, 16); // Return a 16-character hash
 }
 
-function encrypt(data) {
-  const jsonString = JSON.stringify(data);
-  let base64 = btoa(jsonString); // Convert to Base64
-  base64 = base64.replace(/=/g, "").slice(0, 16); // Trim to 16 characters
-  return base64;
+// Function to encrypt (generate hash and store the data)
+async function encrypt(data) {
+  const hash = await generateShortHash(data); // Generate a 16-character hash
+  hashToDataMap.set(hash, data); // Store the hash-to-data mapping
+  return hash; // Return the hash for the URL
 }
-function decrypt(encryptedString) {
-  try {
-    let base64 = encryptedString + "=".repeat((4 - encryptedString.length % 4) % 4); // Re-pad base64
-    const jsonString = atob(base64); // Decode Base64
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error("Decryption failed:", error);
-    return null;
-  }
+
+// Function to decrypt (retrieve the data using the hash)
+function decrypt(hash) {
+  return hashToDataMap.get(hash); // Retrieve the data from the hash-to-data map
 }
+
+// Example usage
+(async () => {
+  // Data to be encrypted
+  const jsonData = {
+    filters: { column: "age", value: ">30" },
+    visibleColumns: ["name", "age"],
+  };
+
+  // Encrypt the data and generate a short hash
+  const shortHash = await encrypt(jsonData);
+  console.log("Short Hash:", shortHash); // Example: "abcd1234xyz9876"
+
+  // Decrypt the data using the short hash
+  const restoredData = decrypt(shortHash);
+  console.log("Restored Data:", restoredData); // Original JSON data
+})();
