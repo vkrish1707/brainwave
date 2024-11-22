@@ -1,45 +1,56 @@
-const hashToDataMap = new Map(); // Store hash-to-data mapping (simulating backend storage)
+const restoreGridStateFromURL = () => {
+  const gridApi = gridRef.current?.api;
 
-// Function to generate a 16-character hash for the given data
-async function generateShortHash(data) {
-  const jsonString = JSON.stringify(data);
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(jsonString);
+  if (!gridApi) return;
 
-  // Generate SHA-256 hash
-  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
+  const queryParams = new URLSearchParams(window.location.search);
+  const data = queryParams.get("data");
 
-  // Convert hash buffer to a Base64 string and truncate it to 16 characters
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const base64Hash = btoa(String.fromCharCode.apply(null, hashArray));
-  return base64Hash.slice(0, 16); // Return a 16-character hash
-}
+  if (!data) return;
 
-// Function to encrypt (generate hash and store the data)
-async function encrypt(data) {
-  const hash = await generateShortHash(data); // Generate a 16-character hash
-  hashToDataMap.set(hash, data); // Store the hash-to-data mapping
-  return hash; // Return the hash for the URL
-}
+  const filtersParams = decrypt(data);
 
-// Function to decrypt (retrieve the data using the hash)
-function decrypt(hash) {
-  return hashToDataMap.get(hash); // Retrieve the data from the hash-to-data map
-}
+  // Restore Filters
+  filtersParams?.filters && gridApi.setFilterModel(filtersParams.filters);
 
-// Example usage
-(async () => {
-  // Data to be encrypted
-  const jsonData = {
-    filters: { column: "age", value: ">30" },
-    visibleColumns: ["name", "age"],
-  };
+  // Restore Filtered Year Range (example)
+  if (filtersParams?.filters?.por) {
+    const tapeOutDateFilters = filtersParams.filters.por;
+    const startYear = Number(new Date(tapeOutDateFilters.dateFrom).getFullYear());
+    const endYear = Number(new Date(tapeOutDateFilters.dateTo).getFullYear());
+    setFilteredYearRange({ startYear, endYear });
+  }
 
-  // Encrypt the data and generate a short hash
-  const shortHash = await encrypt(jsonData);
-  console.log("Short Hash:", shortHash); // Example: "abcd1234xyz9876"
+  // Restore Visible Columns
+  if (filtersParams?.visibleColumns) {
+    const visibleColumnIds = filtersParams.visibleColumns;
+    gridApi.getAllGridColumns().forEach((col) => {
+      const isVisible = visibleColumnIds.includes(col.getColId());
+      gridApi.setColumnVisible(col.getColId(), isVisible);
+    });
+  }
 
-  // Decrypt the data using the short hash
-  const restoredData = decrypt(shortHash);
-  console.log("Restored Data:", restoredData); // Original JSON data
-})();
+  // Restore Column Order
+  if (filtersParams?.colOrder) {
+    const columnState = filtersParams.colOrder.map((colId) => ({
+      colId,
+      hide: false, // Ensure columns are shown
+    }));
+    gridApi.setColumnState(columnState);
+  }
+
+  // Restore Row Order
+  if (filtersParams?.rowOrder) {
+    const rowOrderIds = filtersParams.rowOrder;
+
+    // Update row order without re-setting the data
+    const allRows = gridApi.getDisplayedRowData();
+    const reorderedRows = rowOrderIds.map((id) =>
+      allRows.find((row) => row.data?.id === id)
+    ).filter(Boolean); // Ensure valid rows are included
+
+    reorderedRows.forEach((row, index) => {
+      gridApi.getRowNode(row.data.id)?.setRowIndex(index);
+    });
+  }
+};
