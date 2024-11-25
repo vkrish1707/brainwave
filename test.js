@@ -1,67 +1,59 @@
-const restoreGridStateFromURL = () => {
-  const gridApi = gridRef.current?.api;
-  if (!gridApi) return;
+const restoreRowOrder = (desiredOrder, gridApi) => {
+  if (!gridApi || !Array.isArray(desiredOrder)) return;
 
-  const queryParams = new URLSearchParams(window.location.search);
-  const data = queryParams.get("data");
-  if (!data) return;
+  const idToIndexMap = new Map();
 
-  const filtersParams = decrypt(data);
-  console.log("🚀 ~ filtersParams:", filtersParams);
+  // Create a map of row IDs to their desired indices
+  desiredOrder.forEach((id, index) => {
+    idToIndexMap.set(id, index);
+  });
 
-  // Restore Filters
-  if (filtersParams?.filters) {
-    gridApi.setFilterModel(filtersParams.filters);
-  }
+  // Apply custom row order after filtering and sorting
+  gridApi.forEachNodeAfterFilterAndSort((node) => {
+    const desiredIndex = idToIndexMap.get(node.data.id); // Assuming `id` is the unique row identifier
 
-  // Restore Filtered Year Range (Example)
-  if (filtersParams?.filters?.por) {
-    const tapeOutDateFilters = filtersParams.filters.por;
-    const startYear = new Date(tapeOutDateFilters.dateFrom).getFullYear();
-    const endYear = new Date(tapeOutDateFilters.dateTo).getFullYear();
-    setFilteredYearRange({ startYear, endYear });
-  }
+    if (desiredIndex !== undefined) {
+      node.setRowIndex(desiredIndex);
+    }
+  });
 
-  // Restore Visible Columns and Column Order
-  if (filtersParams?.visibleColumns) {
-    const allColumns = gridApi.getAllColumns();
-    const visibleColumnIds = filtersParams.visibleColumns;
+  // Refresh the grid to reflect the custom row order
+  gridApi.onSortChanged();
+};
 
-    // Make only specific columns visible and set their order
-    const orderedColumns = [];
-    allColumns.forEach((col) => {
-      const colId = col.getColId();
-      const isVisible = visibleColumnIds.includes(colId);
 
-      gridApi.setColumnVisible(colId, isVisible);
+const handleSocSuggestions = () => {
+  callDB({}, "getsoc", "post", "api", (response) => {
+    const socSuggestions = {
+      allSocSuggestions: response.allSocSuggestions,
+      liveSocSuggestions: response.liveSocSuggestions,
+    };
 
-      // Add visible columns in the specified order
-      if (isVisible) {
-        const columnIndex = visibleColumnIds.indexOf(colId);
-        orderedColumns[columnIndex] = col;
-      }
+    // Store suggestions if needed
+    setSuggestions(socSuggestions);
+
+    // Update column definitions without setting state
+    const columnState = gridApi.columnApi.getAllColumns().map((column) => {
+      const colId = column.getColId();
+      const userProvidedColDef = column.getUserProvidedColDef();
+
+      // Update cellRendererParams or any other property dynamically
+      return {
+        colId,
+        cellRendererParams: {
+          ...userProvidedColDef.cellRendererParams,
+          suggestions: socSuggestions,
+        },
+      };
     });
 
-    // Set column order
-    const updatedColumnDefs = orderedColumns
-      .filter((col) => col) // Remove undefined entries
-      .map((col) => col.getColDef());
-    gridApi.setColumnDefs(updatedColumnDefs);
-  }
-
-  // Restore Row Order
-  if (filtersParams?.rowOrder) {
-    const desiredRowOrder = filtersParams.rowOrder;
-    const idToIndexMap = new Map();
-    desiredRowOrder.forEach((id, index) => idToIndexMap.set(id, index));
-
-    gridApi.forEachNode((node) => {
-      const desiredIndex = idToIndexMap.get(node.data.id);
-      if (desiredIndex !== undefined) {
-        node.setRowIndex(desiredIndex);
-      }
+    // Apply the updated column state back to the grid
+    gridApi.columnApi.applyColumnState({
+      state: columnState,
+      applyOrder: false, // Maintain the current column order
     });
 
-    gridApi.refreshCells({ force: true });
-  }
+    // Restore the grid state from the URL if needed
+    restoreGridStateFromURL();
+  });
 };
