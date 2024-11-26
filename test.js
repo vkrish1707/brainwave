@@ -11,27 +11,36 @@ const updateDashboardOrderByKeys = async (dashboardType, keysArray) => {
     const keyOrderMap = new Map();
     keysArray.forEach((key, index) => keyOrderMap.set(key, index + 1)); // Starting order from 1
 
-    // Iterate through all entries and update their order
-    for (const entry of entries) {
+    // Prepare bulk operations
+    const bulkOperations = entries.map((entry) => {
       const { key } = entry; // Assuming `key` is the field for the mapping key
 
       // Determine the order
-      const newOrder = keyOrderMap.has(key) ? keyOrderMap.get(key) : keysArray.length + 1; // Append to the last
+      const newOrder = keyOrderMap.has(key) ? keyOrderMap.get(key) : keysArray.length + 1; // Append missing keys to the end
 
-      // Update the entry's order
-      await model.updateOne(
-        { "dashboards.name": dashboardType, key: key }, // Match dashboard type and key
-        { $set: { "dashboards.$.order": newOrder } }
-      );
+      return {
+        updateOne: {
+          filter: { "dashboards.name": dashboardType, key: key }, // Match the dashboard type and key
+          update: { $set: { "dashboards.$.order": newOrder } },
+        },
+      };
+    });
 
-      // Increment the "last order" for keys not in the provided array
-      keysArray.length++;
-    }
+    // Execute bulkWrite
+    const result = await model.bulkWrite(bulkOperations);
 
-    console.log("Order successfully updated!");
-    return { success: true, message: "Order successfully updated!" };
+    console.log("Order successfully updated via bulkWrite!");
+    return {
+      success: true,
+      message: "Order successfully updated via bulkWrite!",
+      result,
+    };
   } catch (error) {
-    console.error("Error updating dashboard order:", error);
-    return { success: false, message: "Error updating dashboard order.", error };
+    console.error("Error updating dashboard order with bulkWrite:", error);
+    return {
+      success: false,
+      message: "Error updating dashboard order with bulkWrite.",
+      error,
+    };
   }
 };
