@@ -18,3 +18,39 @@ const restoreRowOrder = (desiredOrder, gridApi) => {
   // Reapply the reordered data to the grid
   gridApi.setRowData(reorderedData);
 };
+
+const handleSocSuggestions = () => {
+  callDB({}, "getsoc", "post", "api", (response) => {
+    const socSuggestions = {
+      allSocSuggestions: response.allSocSuggestions,
+      liveSocSuggestions: response.liveSocSuggestions,
+    };
+
+    // Store suggestions if needed
+    setSuggestions(socSuggestions);
+
+    // Update column definitions without setting state
+    const columnState = gridApi.columnApi.getAllColumns().map((column) => {
+      const colId = column.getColId();
+      const userProvidedColDef = column.getUserProvidedColDef();
+
+      // Update cellRendererParams or any other property dynamically
+      return {
+        colId,
+        cellRendererParams: {
+          ...userProvidedColDef.cellRendererParams,
+          suggestions: socSuggestions,
+        },
+      };
+    });
+
+    // Apply the updated column state back to the grid
+    gridApi.columnApi.applyColumnState({
+      state: columnState,
+      applyOrder: false, // Maintain the current column order
+    });
+
+    // Restore the grid state from the URL if needed
+    restoreGridStateFromURL();
+  });
+};
