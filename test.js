@@ -1,15 +1,24 @@
-const dashboardName = "exe"; // or "aecg"
+const updateDashboardOrder = async (dashboardType, orderUpdates) => {
+  try {
+    // Loop through the array of order updates
+    for (const update of orderUpdates) {
+      const { keyName, newOrder } = update;
 
-// Find all documents containing the specified dashboard
-const results = await model.find({
-  "dashboards.name": dashboardName // Match dashboard name
-});
+      // Find and update the specific dashboard's order
+      await model.updateOne(
+        { "dashboards.name": dashboardType, key: keyName }, // Match the dashboard type and key
+        {
+          $set: {
+            "dashboards.$.order": newOrder, // Update the order
+          },
+        }
+      );
+    }
 
-// Extract and sort the results by the `order` field in the application layer
-const sortedResults = results.map((doc) => {
-  // Extract the specific dashboard's order for sorting
-  const dashboard = doc.dashboards.find((d) => d.name === dashboardName);
-  return { ...doc.toObject(), dashboardOrder: dashboard?.order || 0 };
-}).sort((a, b) => a.dashboardOrder - b.dashboardOrder);
-
-console.log(sortedResults);
+    console.log("Order updates successful!");
+    return { success: true, message: "Order updates successful!" };
+  } catch (error) {
+    console.error("Error updating dashboard order:", error);
+    return { success: false, message: "Error updating dashboard order.", error };
+  }
+};
