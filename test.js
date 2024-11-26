@@ -1,56 +1,30 @@
-const restoreRowOrder = (desiredOrder, gridApi) => {
-  if (!gridApi || !Array.isArray(desiredOrder)) return;
+const columnWidths = [
+  { key: "col1", width: 150 },
+  { key: "col2", width: 200 },
+  { key: "col3", width: 300 },
+  // Add more column configurations here
+];
 
-  // Get the current row data
-  const rowData = [];
-  gridApi.forEachNode((node) => {
-    rowData.push(node.data);
-  });
-
-  // Create a map of ID to row data for faster lookup
-  const idToDataMap = new Map(rowData.map((data) => [data.id, data]));
-
-  // Reorder the row data based on the desiredOrder array
-  const reorderedData = desiredOrder
-    .map((id) => idToDataMap.get(id))
-    .filter((data) => !!data); // Filter out any undefined values
-
-  // Reapply the reordered data to the grid
-  gridApi.setRowData(reorderedData);
+const onFirstDataRendered = (params) => {
+  adjustColumnWidths(params.api, columnWidths);
 };
 
-const handleSocSuggestions = () => {
-  callDB({}, "getsoc", "post", "api", (response) => {
-    const socSuggestions = {
-      allSocSuggestions: response.allSocSuggestions,
-      liveSocSuggestions: response.liveSocSuggestions,
-    };
+const adjustColumnWidths = (gridApi, columnWidthsArray) => {
+  if (!gridApi || !columnWidthsArray) return;
 
-    // Store suggestions if needed
-    setSuggestions(socSuggestions);
-
-    // Update column definitions without setting state
-    const columnState = gridApi.columnApi.getAllColumns().map((column) => {
-      const colId = column.getColId();
-      const userProvidedColDef = column.getUserProvidedColDef();
-
-      // Update cellRendererParams or any other property dynamically
-      return {
-        colId,
-        cellRendererParams: {
-          ...userProvidedColDef.cellRendererParams,
-          suggestions: socSuggestions,
-        },
-      };
-    });
-
-    // Apply the updated column state back to the grid
-    gridApi.columnApi.applyColumnState({
-      state: columnState,
-      applyOrder: false, // Maintain the current column order
-    });
-
-    // Restore the grid state from the URL if needed
-    restoreGridStateFromURL();
+  // Loop through the array and set the widths
+  columnWidthsArray.forEach(({ key, width }) => {
+    gridApi.columnApi.setColumnWidth(key, width);
   });
+
+  // Refresh the grid to reflect the changes
+  gridApi.refreshHeader(); // Optional: Refresh header if necessary
 };
+
+// AG Grid React component
+<AgGridReact
+  ref={gridRef}
+  rowData={rowData}
+  columnDefs={columnDefs}
+  onFirstDataRendered={onFirstDataRendered} // Trigger function after first render
+/>;
