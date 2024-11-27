@@ -1,46 +1,114 @@
-const updateDashboardOrderByKeys = async (dashboardType, keysArray) => {
-  try {
-    // Fetch all entries for the given dashboard type
-    const entries = await model.find({ "dashboards.name": dashboardType });
+import React, { useEffect, useState, useRef } from "react";
+import { AgGridReact } from "ag-grid-react";
 
-    if (!entries.length) {
-      return { success: false, message: `No entries found for dashboard type: ${dashboardType}` };
+const GridWithUrlToggle = ({ backendData }) => {
+  const [isUrlFilters, setIsUrlFilters] = useState(false); // State to track toggle
+  const [encryptedData, setEncryptedData] = useState(""); // Store encrypted filters
+  const [columnDefs, setColumnDefs] = useState([]); // Grid column definitions
+  const [rowData, setRowData] = useState([]); // Grid row data
+  const gridApiRef = useRef(null); // Grid API reference
+
+  // Function to restore grid state from encrypted data
+  const restoreGridStateFromURL = () => {
+    const gridApi = gridApiRef.current?.api;
+    if (!gridApi || !encryptedData) return;
+
+    const filtersParams = decrypt(encryptedData);
+
+    if (filtersParams.filters) {
+      gridApi.setFilterModel(filtersParams.filters);
     }
 
-    // Create a map for the given keys with their new order
-    const keyOrderMap = new Map();
-    keysArray.forEach((key, index) => keyOrderMap.set(key, index + 1)); // Starting order from 1
+    if (filtersParams.visibleColumns) {
+      const allColumns = gridApi.getAllDisplayedColumns();
+      const visibleColumnIds = filtersParams.visibleColumns;
 
-    // Prepare bulk operations
-    const bulkOperations = entries.map((entry) => {
-      const { key } = entry; // Assuming `key` is the field for the mapping key
+      allColumns.forEach((col) => {
+        const colId = col.getColId();
+        const isVisible = visibleColumnIds.includes(colId);
+        gridApi.setColumnVisible(colId, isVisible);
+      });
 
-      // Determine the order
-      const newOrder = keyOrderMap.has(key) ? keyOrderMap.get(key) : keysArray.length + 1; // Append missing keys to the end
+      visibleColumnIds.forEach((colId, index) => {
+        gridApi.moveColumns([colId], index);
+      });
+    }
 
-      return {
-        updateOne: {
-          filter: { "dashboards.name": dashboardType, key: key }, // Match the dashboard type and key
-          update: { $set: { "dashboards.$.order": newOrder } },
-        },
-      };
-    });
+    // Optional: Restore row order
+    if (filtersParams.rowOrder) {
+      const updatedRowData = [];
+      const rowDataMap = new Map(rowData.map((row) => [row.id, row]));
+      filtersParams.rowOrder.forEach((id) => {
+        if (rowDataMap.has(id)) {
+          updatedRowData.push(rowDataMap.get(id));
+        }
+      });
+      setRowData(updatedRowData);
+    }
+  };
 
-    // Execute bulkWrite
-    const result = await model.bulkWrite(bulkOperations);
+  // Function to update URL with encrypted data
+  const updateUrlWithFilters = () => {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set("data", encryptedData);
+    window.history.replaceState(null, "", currentUrl.toString());
+  };
 
-    console.log("Order successfully updated via bulkWrite!");
-    return {
-      success: true,
-      message: "Order successfully updated via bulkWrite!",
-      result,
-    };
-  } catch (error) {
-    console.error("Error updating dashboard order with bulkWrite:", error);
-    return {
-      success: false,
-      message: "Error updating dashboard order with bulkWrite.",
-      error,
-    };
-  }
+  // Function to remove encrypted data from URL
+  const removeUrlFilters = () => {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete("data");
+    window.history.replaceState(null, "", currentUrl.toString());
+  };
+
+  // Toggle logic for URL filters
+  const handleUrlFiltersToggle = (checked) => {
+    setIsUrlFilters(checked);
+    if (checked) {
+      updateUrlWithFilters();
+      restoreGridStateFromURL();
+    } else {
+      removeUrlFilters();
+      setColumnDefs(backendData.headers); // Reset to default columns
+      setRowData(backendData.rows); // Reset to default row data
+    }
+  };
+
+  // useEffect to initialize encrypted data from URL (on mount)
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const encryptedDataFromUrl = queryParams.get("data");
+    if (encryptedDataFromUrl) {
+      setEncryptedData(encryptedDataFromUrl);
+      setIsUrlFilters(true); // Enable checkbox if data exists in URL
+    }
+  }, []);
+
+  return (
+    <div>
+      {/* Checkbox to toggle URL filters */}
+      <label>
+        <input
+          type="checkbox"
+          checked={isUrlFilters}
+          onChange={(e) => handleUrlFiltersToggle(e.target.checked)}
+        />
+        Apply URL Filters
+      </label>
+
+      {/* Grid Component */}
+      <AgGridReact
+        ref={gridApiRef}
+        columnDefs={columnDefs}
+        rowData={rowData}
+        onFirstDataRendered={() => {
+          if (isUrlFilters) {
+            restoreGridStateFromURL(); // Apply filters on first render
+          }
+        }}
+      />
+    </div>
+  );
 };
+
+export default GridWithUrlToggle;
