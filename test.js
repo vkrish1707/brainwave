@@ -1,114 +1,41 @@
-import React, { useEffect, useState, useRef } from "react";
-import { AgGridReact } from "ag-grid-react";
+const adjustColumnWidths = () => {
+  console.log("Adjusting column widths");
+  const gridApi = ssGridRef.current?.api;
+  const mainGridApi = mainGridRef.current?.api; // Reference to the main visible grid
+  
+  if (!gridApi || !mainGridApi) return;
 
-const GridWithUrlToggle = ({ backendData }) => {
-  const [isUrlFilters, setIsUrlFilters] = useState(false); // State to track toggle
-  const [encryptedData, setEncryptedData] = useState(""); // Store encrypted filters
-  const [columnDefs, setColumnDefs] = useState([]); // Grid column definitions
-  const [rowData, setRowData] = useState([]); // Grid row data
-  const gridApiRef = useRef(null); // Grid API reference
+  // Get all columns in the main grid
+  const mainColumns = mainGridApi.getAllDisplayedColumns().map((col) => ({
+    key: col.getColId(),
+    isVisible: col.isVisible(),
+  }));
 
-  // Function to restore grid state from encrypted data
-  const restoreGridStateFromURL = () => {
-    const gridApi = gridApiRef.current?.api;
-    if (!gridApi || !encryptedData) return;
+  // Determine visible and hidden columns
+  const visibleColumns = mainColumns.filter((col) => col.isVisible);
+  const hiddenColumns = mainColumns.filter((col) => !col.isVisible);
 
-    const filtersParams = decrypt(encryptedData);
+  // Calculate scaling factor for the visible grid's width
+  const totalVisibleWidth = visibleColumns.reduce((sum, col) => {
+    const width = ssGridColsWidth.find((c) => c.key === col.key)?.width || 100; // Default width
+    return sum + width;
+  }, 0);
 
-    if (filtersParams.filters) {
-      gridApi.setFilterModel(filtersParams.filters);
-    }
+  const viewportWidth = handlesSsGridWidth(activeView); // Get the view width (123vw, etc.)
+  const scalingFactor = viewportWidth / totalVisibleWidth;
 
-    if (filtersParams.visibleColumns) {
-      const allColumns = gridApi.getAllDisplayedColumns();
-      const visibleColumnIds = filtersParams.visibleColumns;
+  // Apply adjusted widths to SSGrid
+  visibleColumns.forEach((col) => {
+    const originalWidth = ssGridColsWidth.find((c) => c.key === col.key)?.width || 100; // Default width
+    const adjustedWidth = Math.floor(originalWidth * scalingFactor);
+    gridApi.setColumnWidth(col.key, adjustedWidth);
+  });
 
-      allColumns.forEach((col) => {
-        const colId = col.getColId();
-        const isVisible = visibleColumnIds.includes(colId);
-        gridApi.setColumnVisible(colId, isVisible);
-      });
+  // Set a default minimal width for hidden columns
+  hiddenColumns.forEach((col) => {
+    gridApi.setColumnWidth(col.key, 50); // Set minimal width for hidden columns
+  });
 
-      visibleColumnIds.forEach((colId, index) => {
-        gridApi.moveColumns([colId], index);
-      });
-    }
-
-    // Optional: Restore row order
-    if (filtersParams.rowOrder) {
-      const updatedRowData = [];
-      const rowDataMap = new Map(rowData.map((row) => [row.id, row]));
-      filtersParams.rowOrder.forEach((id) => {
-        if (rowDataMap.has(id)) {
-          updatedRowData.push(rowDataMap.get(id));
-        }
-      });
-      setRowData(updatedRowData);
-    }
-  };
-
-  // Function to update URL with encrypted data
-  const updateUrlWithFilters = () => {
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set("data", encryptedData);
-    window.history.replaceState(null, "", currentUrl.toString());
-  };
-
-  // Function to remove encrypted data from URL
-  const removeUrlFilters = () => {
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.delete("data");
-    window.history.replaceState(null, "", currentUrl.toString());
-  };
-
-  // Toggle logic for URL filters
-  const handleUrlFiltersToggle = (checked) => {
-    setIsUrlFilters(checked);
-    if (checked) {
-      updateUrlWithFilters();
-      restoreGridStateFromURL();
-    } else {
-      removeUrlFilters();
-      setColumnDefs(backendData.headers); // Reset to default columns
-      setRowData(backendData.rows); // Reset to default row data
-    }
-  };
-
-  // useEffect to initialize encrypted data from URL (on mount)
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const encryptedDataFromUrl = queryParams.get("data");
-    if (encryptedDataFromUrl) {
-      setEncryptedData(encryptedDataFromUrl);
-      setIsUrlFilters(true); // Enable checkbox if data exists in URL
-    }
-  }, []);
-
-  return (
-    <div>
-      {/* Checkbox to toggle URL filters */}
-      <label>
-        <input
-          type="checkbox"
-          checked={isUrlFilters}
-          onChange={(e) => handleUrlFiltersToggle(e.target.checked)}
-        />
-        Apply URL Filters
-      </label>
-
-      {/* Grid Component */}
-      <AgGridReact
-        ref={gridApiRef}
-        columnDefs={columnDefs}
-        rowData={rowData}
-        onFirstDataRendered={() => {
-          if (isUrlFilters) {
-            restoreGridStateFromURL(); // Apply filters on first render
-          }
-        }}
-      />
-    </div>
-  );
+  // Refresh the header to reflect changes
+  gridApi.refreshHeader();
 };
-
-export default GridWithUrlToggle;
