@@ -9,30 +9,45 @@ const adjustColumnWidths = () => {
   // Step 1: Get visible columns from the main grid
   const visibleColumns = mainGridApi.getAllDisplayedColumns().map((col) => col.getColId());
 
-  // Step 2: Filter widths from ssGridColsWidth based on visible columns
-  const visibleWidths = ssGridColsWidth
-    .filter((col) => visibleColumns.includes(col.key)) // Match keys
-    .map((col) => col.width); // Extract widths
+  // Step 2: Filter the widths from `ssGridColsWidth` for all columns
+  const allColumnWidths = ssGridColsWidth.map((col) => col.width); // All column widths
+  const visibleColumnWidths = ssGridColsWidth
+    .filter((col) => visibleColumns.includes(col.key)) // Match visible columns
+    .map((col) => col.width); // Extract visible widths
 
-  // Step 3: Calculate the sum of visible widths
-  const totalVisibleWidth = visibleWidths.reduce((sum, width) => sum + width, 0);
+  const hiddenColumns = ssGridColsWidth.filter((col) => !visibleColumns.includes(col.key)); // Hidden columns
 
-  // Step 4: Get the scaling factor based on the dashboard viewport
-  const dashboardViewWidth = handlesSsGridWidth(activeView); // Get vw (viewport width)
-  const scalingFactor = dashboardViewWidth / totalVisibleWidth;
+  // Step 3: Check if there are hidden columns
+  if (hiddenColumns.length === 0) {
+    console.log("No hidden columns detected. Setting default widths.");
+    // No hidden columns, set the column widths directly
+    ssGridColsWidth.forEach(({ key, width }) => {
+      ssGridApi.setColumnWidth(key, width); // Set original width
+    });
+    ssGridApi.refreshHeader();
+    return; // Exit since no scaling is needed
+  }
 
-  console.log("Scaling Factor:", scalingFactor);
+  // Step 4: Calculate the total visible width and deficit
+  const totalVisibleWidth = visibleColumnWidths.reduce((sum, width) => sum + width, 0); // Sum of visible widths
+  const totalAllColumnsWidth = allColumnWidths.reduce((sum, width) => sum + width, 0); // Total width of all columns
+  const deficit = totalAllColumnsWidth - totalVisibleWidth; // Width deficit caused by hidden columns
+  const adjustmentPerColumn = Math.round(deficit / visibleColumns.length); // Distribute deficit across visible columns
 
-  // Step 5: Adjust column widths for the SS Grid
+  console.log(`Deficit: ${deficit}, Adjustment per column: ${adjustmentPerColumn}`);
+
+  // Step 5: Adjust visible column widths
   ssGridColsWidth.forEach(({ key, width }) => {
-    // Adjust only for visible columns
-    const adjustedWidth = visibleColumns.includes(key)
-      ? Math.round(width * scalingFactor) // Scale the width for visible columns
-      : width; // Keep the original width for hidden columns
-
-    ssGridApi.setColumnWidth(key, adjustedWidth);
+    if (visibleColumns.includes(key)) {
+      // Adjust visible column widths
+      const adjustedWidth = width + adjustmentPerColumn;
+      ssGridApi.setColumnWidth(key, adjustedWidth);
+    } else {
+      // Set original width for hidden columns
+      ssGridApi.setColumnWidth(key, width);
+    }
   });
 
-  // Step 6: Refresh the header to apply changes
+  // Step 6: Refresh the header to reflect changes
   ssGridApi.refreshHeader();
 };
