@@ -1,7 +1,7 @@
 const adjustColumnWidths = () => {
   console.log("Adjusting SS Grid column widths");
 
-  const mainGridApi = mainGridRef.current?.api; // Main grid reference
+  const mainGridApi = gridRef.current?.api; // Main grid reference
   const ssGridApi = ssGridRef.current?.api; // SS Grid reference
 
   if (!mainGridApi || !ssGridApi) return;
@@ -25,7 +25,11 @@ const adjustColumnWidths = () => {
 
   // Step 5: Adjust column widths for the SS Grid
   ssGridColsWidth.forEach(({ key, width }) => {
-    const adjustedWidth = Math.round(width * scalingFactor); // Scale the width
+    // Adjust only for visible columns
+    const adjustedWidth = visibleColumns.includes(key)
+      ? Math.round(width * scalingFactor) // Scale the width for visible columns
+      : width; // Keep the original width for hidden columns
+
     ssGridApi.setColumnWidth(key, adjustedWidth);
   });
 
