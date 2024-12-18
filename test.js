@@ -1,36 +1,50 @@
-.triangle-corner {
-  position: relative;
-  /* Optional: Adjust positioning if needed */
-  width: 0;
-  height: 0;
-  /* You can define these custom properties or inline them directly: */
-  --triangle-border: 10px;   /* Adjust the size as needed */
-  --triangle-color: black;   /* Adjust the triangle color as needed */
-}
+function MyGridComponent() {
+  const [scale, setScale] = useState(1);
+  const gridRef = useRef(null);
+  const baseColumnWidthsRef = useRef({});
 
-/* The top layer of the triangle */
-.triangle-corner::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-top: 1.5px solid black;
-  border-bottom: var(--triangle-border) solid transparent;
-  border-right: var(--triangle-border) solid var(--triangle-color);
-  z-index: 2;
-}
+  const onGridReady = (params) => {
+    const allColumns = params.columnApi.getAllColumns();
+    allColumns.forEach((col) => {
+      const colId = col.getColId();
+      const colDef = col.getColDef();
+      baseColumnWidthsRef.current[colId] = colDef.width || 100;
+    });
+  };
 
-/* A slightly bigger shape behind it, to create a layered effect */
-.triangle-corner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-bottom: calc(var(--triangle-border) + 1.5px) solid transparent;
-  border-right: calc(var(--triangle-border) + 1.5px) solid black;
-  z-index: 0;
+  const adjustColumnWidths = (newScale) => {
+    const colIds = Object.keys(baseColumnWidthsRef.current);
+    colIds.forEach((colId) => {
+      const newWidth = baseColumnWidthsRef.current[colId] * newScale;
+      gridRef.current.api.setColumnWidth(colId, newWidth);
+    });
+  };
+
+  return (
+    <div style={{ height: "87vh", width: "100%", transformOrigin: "top left" }}>
+      <AgGridReact
+        ref={gridRef}
+        rowData={rowData}
+        columnDefs={columnDefs}
+        onGridReady={onGridReady}
+        // ... other props
+      />
+
+      <div style={{ marginTop: "10px" }}>
+        <label>Scale Columns: </label>
+        <input
+          type="range"
+          min="0.5"
+          max="2"
+          step="0.1"
+          value={scale}
+          onChange={(e) => {
+            const newScale = parseFloat(e.target.value);
+            setScale(newScale);
+            adjustColumnWidths(newScale);
+          }}
+        />
+      </div>
+    </div>
+  );
 }
