@@ -1,31 +1,45 @@
-const exportSvg = () => {
-  const svgElement = document.querySelector("svg"); // Selects the SVG element (ensure your grid contains SVG)
-  
-  if (!svgElement) {
-    console.error("No SVG found in the document.");
-    return;
-  }
+.triangle-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-left: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  border-top: 20px solid black; /* Top border */
+  border-right: 20px solid black; /* Right border */
+}
 
-  const serializer = new XMLSerializer();
-  let source = serializer.serializeToString(svgElement);
+.triangle-corner::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-bottom: 18px solid transparent;
+  border-top: 18px solid red; /* Triangle Fill Color */
+  border-right: 18px solid red; /* Right border */
+}
 
-  // Fix missing namespace (important for PowerPoint compatibility)
-  if (!source.includes("xmlns")) {
-    source = source.replace(
-      "<svg",
-      '<svg xmlns="http://www.w3.org/2000/svg"'
-    );
-  }
-
-  // Create downloadable blob
-  const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-
-  // Create a download link
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "grid_screenshot.svg";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+const TriangleCorner = ({ color = "red", borderColor = "black", size = 20 }) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ position: "absolute", top: 0, right: 0 }}
+    >
+      <polygon
+        points={`0,0 ${size},0 0,${size}`}
+        fill={color}
+        stroke={borderColor}
+        strokeWidth="2"
+      />
+    </svg>
+  );
 };
+
+export default TriangleCorner;
