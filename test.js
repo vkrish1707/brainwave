@@ -1,41 +1,21 @@
-if (newValue.length > previousValue.length) {
-    // A new cell was created → find the extra item in newValue
-    const newItem = newValue.find(newItem => 
-        !previousValue.some(prevItem => prevItem.value === newItem.value)
-    );
+const findArrayDifference = (arr1, arr2, keys) => {
+    const createKey = (obj) => keys.map(key => obj[key]).join("|"); // Unique key for comparison
+    const set1 = new Set(arr1.map(createKey));
+    const set2 = new Set(arr2.map(createKey));
 
-    if (newItem) {
-        changes.push({
-            siDieId: log.siDieId,
-            socName: siDieName,
-            ipType: ipTypeName,
-            changeMadeBy,
-            newValue: newItem.value,
-            newValueLabel: getLabelFromColor(newItem.value),
-            previousValue: "", // No previous value since it's newly created
-            previousValueLabel: "",
-            type: "Created",
-            createdAt
-        });
+    // Find the object that is extra in arr2 (added)
+    for (const obj of arr2) {
+        if (!set1.has(createKey(obj))) {
+            return { differenceObject: obj, changeType: "added" };
+        }
     }
-} else if (newValue.length < previousValue.length) {
-    // A cell was deleted → find the missing item from newValue
-    const deletedItem = previousValue.find(prevItem => 
-        !newValue.some(newItem => newItem.value === prevItem.value)
-    );
 
-    if (deletedItem) {
-        changes.push({
-            siDieId: log.siDieId,
-            socName: siDieName,
-            ipType: ipTypeName,
-            changeMadeBy,
-            newValue: "", // No new value since it's deleted
-            newValueLabel: "",
-            previousValue: deletedItem.value,
-            previousValueLabel: getLabelFromColor(deletedItem.value),
-            type: "Deleted",
-            createdAt
-        });
+    // Find the object that is extra in arr1 (removed)
+    for (const obj of arr1) {
+        if (!set2.has(createKey(obj))) {
+            return { differenceObject: obj, changeType: "removed" };
+        }
     }
-}
+
+    return null; // No difference found
+};
