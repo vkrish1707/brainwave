@@ -1,36 +1,61 @@
-const SkillCellRenderer = (props) => {
-    const [editing, setEditing] = useState(false);
-    const [selectedValue, setSelectedValue] = useState(props.value);
+import React, { useState, useEffect, useRef } from 'react';
+import { Select, MenuItem } from '@mui/material';
 
-    const handleSelectChange = (e) => {
+const SkillCellRenderer = (props) => {
+    const { value, data, api, colDef } = props;
+    const [editing, setEditing] = useState(false);
+    const [selectedValue, setSelectedValue] = useState(value || '');
+    const selectRef = useRef(null);
+
+    const options = colDef.cellRendererParams?.options || [];
+
+    useEffect(() => {
+        if (editing && selectRef.current) {
+            // Automatically open the dropdown
+            selectRef.current.focus();
+            selectRef.current.click(); // forces the dropdown to open
+        }
+    }, [editing]);
+
+    const handleChange = (e) => {
         const newValue = e.target.value;
         setSelectedValue(newValue);
         setEditing(false);
 
         // Update AG Grid row
-        props.api.applyTransaction({
-            update: [{ ...props.data, SKILL_SET: newValue }]
+        api.applyTransaction({
+            update: [{ ...data, SKILL_SET: newValue }]
         });
 
-        // Optionally trigger backend
-        callBackendUpdate({
-            employeeId: props.data.EMPLOYEE_ID,
-            workWeek: props.data.WEEK_NUM,
-            newValue: newValue
-        });
+        // Backend update (optional)
+        if (colDef.cellRendererParams?.onChange) {
+            colDef.cellRendererParams.onChange(newValue, data);
+        }
     };
 
     return (
-        <div onClick={() => setEditing(true)} style={{ cursor: 'pointer' }}>
+        <div onClick={() => setEditing(true)} style={{ width: '100%', height: '100%' }}>
             {editing ? (
-                <select value={selectedValue} onChange={handleSelectChange} autoFocus>
-                    <option value="Java">Java</option>
-                    <option value="Python">Python</option>
-                    <option value="C++">C++</option>
-                </select>
+                <Select
+                    ref={selectRef}
+                    value={selectedValue}
+                    onChange={handleChange}
+                    fullWidth
+                    size="small"
+                    variant="standard"
+                    disableUnderline
+                >
+                    {options.map((option) => (
+                        <MenuItem key={option} value={option}>
+                            {option}
+                        </MenuItem>
+                    ))}
+                </Select>
             ) : (
                 <span>{selectedValue || 'Select skill'}</span>
             )}
         </div>
     );
 };
+
+export default SkillCellRenderer;
