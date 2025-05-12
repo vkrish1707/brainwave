@@ -1,56 +1,84 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Select, MenuItem } from '@mui/material';
+import { Select, MenuItem, FormControl } from '@mui/material';
 
 const SkillCellRenderer = (props) => {
     const { value, data, api, colDef } = props;
-    const [editing, setEditing] = useState(false);
-    const [selectedValue, setSelectedValue] = useState(value || '');
-    const selectRef = useRef(null);
-
     const options = colDef.cellRendererParams?.options || [];
 
-    useEffect(() => {
-        if (editing && selectRef.current) {
-            // Automatically open the dropdown
-            selectRef.current.focus();
-            selectRef.current.click(); // forces the dropdown to open
-        }
-    }, [editing]);
+    const [editing, setEditing] = useState(false);
+    const [selectedValue, setSelectedValue] = useState(value || '');
+    const [openDropdown, setOpenDropdown] = useState(false);
 
-    const handleChange = (e) => {
+    const containerRef = useRef(null);
+
+    const handleSelectChange = (e) => {
         const newValue = e.target.value;
         setSelectedValue(newValue);
-        setEditing(false);
-
-        // Update AG Grid row
         api.applyTransaction({
-            update: [{ ...data, SKILL_SET: newValue }]
+            update: [{ ...data, SKILL_SET: newValue }],
         });
-
-        // Backend update (optional)
-        if (colDef.cellRendererParams?.onChange) {
-            colDef.cellRendererParams.onChange(newValue, data);
-        }
+        setEditing(false);
+        setOpenDropdown(false);
     };
 
+    useEffect(() => {
+        const handleOutsideClick = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                if (editing) {
+                    setEditing(false);
+                    setOpenDropdown(false);
+                }
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+        };
+    }, [editing]);
+
+    useEffect(() => {
+        // Sync selectedValue when props.value changes
+        if (props.value !== selectedValue) {
+            setSelectedValue(props.value || '');
+        }
+    }, [props.value]);
+
     return (
-        <div onClick={() => setEditing(true)} style={{ width: '100%', height: '100%' }}>
+        <div
+            ref={containerRef}
+            onClick={() => {
+                setEditing(true);
+                setOpenDropdown(true);
+            }}
+            style={{ width: '100%', cursor: 'pointer' }}
+        >
             {editing ? (
-                <Select
-                    ref={selectRef}
-                    value={selectedValue}
-                    onChange={handleChange}
-                    fullWidth
-                    size="small"
-                    variant="standard"
-                    disableUnderline
-                >
-                    {options.map((option) => (
-                        <MenuItem key={option} value={option}>
-                            {option}
+                <FormControl fullWidth size="small">
+                    <Select
+                        value={selectedValue}
+                        onChange={handleSelectChange}
+                        open={openDropdown}
+                        onClose={() => {
+                            setEditing(false);
+                            setOpenDropdown(false);
+                        }}
+                        autoFocus
+                        displayEmpty
+                        fullWidth
+                        variant="standard"
+                        disableUnderline
+                    >
+                        <MenuItem disabled value="">
+                            <em>Select skill</em>
                         </MenuItem>
-                    ))}
-                </Select>
+                        {options.map((skill) => (
+                            <MenuItem key={skill} value={skill}>
+                                {skill}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
             ) : (
                 <span>{selectedValue || 'Select skill'}</span>
             )}
