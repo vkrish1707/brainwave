@@ -1,4 +1,4 @@
-const getGlobalSkills = async () => {
+const inheritSourceAndSkills = async (currentWorkWeek, previousWorkWeek) => {
   const connection = snowflake.createConnection(configParams);
 
   try {
@@ -6,27 +6,45 @@ const getGlobalSkills = async () => {
       await connection.connectAsync();
     }
 
-    const sqlQuery = `SELECT SKILL_NAME FROM global_skill_mappings WHERE SOURCE_NAME = 'global'`;
+    const sqlQuery = `
+      UPDATE global_workforce AS target
+      SET 
+        SOURCE_LIST = (
+          SELECT src.SOURCE_LIST 
+          FROM global_workforce AS src
+          WHERE src.EMPLOYEE_ID = target.EMPLOYEE_ID
+            AND src.WORK_WEEK = '${previousWorkWeek}'
+        ),
+        SKILL_SET = (
+          SELECT src.SKILL_SET 
+          FROM global_workforce AS src
+          WHERE src.EMPLOYEE_ID = target.EMPLOYEE_ID
+            AND src.WORK_WEEK = '${previousWorkWeek}'
+        )
+      WHERE target.WORK_WEEK = '${currentWorkWeek}'
+        AND target.EMPLOYEE_ID IN (
+          SELECT EMPLOYEE_ID 
+          FROM global_workforce 
+          WHERE WORK_WEEK = '${previousWorkWeek}'
+        )
+    `;
 
-    const rows = await new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       connection.execute({
         sqlText: sqlQuery,
-        complete: (err, stmt, rows) => {
+        complete: (err) => {
           if (err) {
-            console.error("Failed to fetch global skills:", err);
+            console.error("Skill/source inheritance failed:", err.message);
             return reject(err);
           }
-          resolve(rows);
+          console.log("Source list and skills inherited successfully.");
+          resolve();
         },
       });
     });
 
-    // Map just the SKILL_NAME fields into an array of strings
-    const skillsArray = rows.map(row => row.SKILL_NAME);
-    return skillsArray;
-
   } catch (err) {
-    console.error("getGlobalSkills error:", err.message);
+    console.error("inheritSourceAndSkills error:", err.message);
     throw err;
   }
 };
