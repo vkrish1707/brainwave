@@ -1,92 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Box,
-  Button,
-  Typography,
-  List,
-  ListItem,
-  IconButton,
-  TextField,
-  Paper
+  Box, Button, Typography, List, ListItem, TextField, Paper,
+  IconButton
 } from '@mui/material';
-import { Edit, Delete, Check } from '@mui/icons-material';
+import { Add, Delete, Save, Edit, Check } from '@mui/icons-material';
 import './SourceSkillSet.css';
 
 const SourceSkillSet = () => {
   const [skills, setSkills] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [newSkill, setNewSkill] = useState('');
   const [editIndex, setEditIndex] = useState(null);
   const [editSkill, setEditSkill] = useState('');
-  const [newSkill, setNewSkill] = useState('');
 
   useEffect(() => {
-    fetchSkills();
+    fetch('/api/skills') // replace with your actual API endpoint
+      .then(res => res.json())
+      .then(data => {
+        const skillList = data.skills.map(s => s.SKILL_NAME);
+        setSkills(skillList);
+      });
   }, []);
 
-  const fetchSkills = async () => {
-    try {
-      const response = await fetch('/api/skills');
-      const data = await response.json();
-      const skillList = data.skills.map(item => item.SKILL_NAME);
-      setSkills(skillList);
-    } catch (error) {
-      console.error('Error fetching skills:', error);
-    }
-  };
-
   const handleAddSkill = () => {
-    if (newSkill.trim()) {
-      setSkills(prev => [...prev, newSkill.trim()]);
-      setNewSkill('');
-    }
-  };
-
-  const handleEditSkill = (index) => {
-    setEditIndex(index);
-    setEditSkill(skills[index]);
-  };
-
-  const handleConfirmEditSkill = (index) => {
-    const updatedSkills = [...skills];
-    updatedSkills[index] = editSkill;
-    setSkills(updatedSkills);
-    setEditIndex(null);
-    setEditSkill('');
+    if (!newSkill.trim()) return;
+    setSkills(prev => [...prev, newSkill]);
+    setNewSkill('');
   };
 
   const handleDeleteSkill = (skill) => {
     setSkills(prev => prev.filter(s => s !== skill));
   };
 
+  const handleEditSkill = (index) => {
+    setEditIndex(index);
+    setEditSkill(filteredSkills[index]);
+  };
+
+  const handleConfirmEditSkill = (index) => {
+    const updatedSkills = [...skills];
+    const originalSkillIndex = skills.indexOf(filteredSkills[index]);
+    if (originalSkillIndex > -1) {
+      updatedSkills[originalSkillIndex] = editSkill;
+      setSkills(updatedSkills);
+    }
+    setEditIndex(null);
+    setEditSkill('');
+  };
+
+  const handleSave = () => {
+    console.log('Final Payload:', { source: 'global', skills });
+    // Call backend API to save
+  };
+
   const filteredSkills = skills.filter(skill =>
     skill.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleSave = () => {
-    console.log('Saving updated skills:', skills);
-    // Send skills to backend
-  };
 
   return (
     <Paper elevation={5} className="source-skillset-paper">
       <Typography variant="h5" className="source-skillset-heading">
         Source and Skill List
       </Typography>
+
       <Box className="source-skillset-container">
+        <Box className="source-skillset-section source-skillset-source-list">
+          <Typography variant="h6">Source Lists</Typography>
+          <List>
+            <ListItem selected>Global</ListItem>
+          </List>
+        </Box>
+
         <Box className="source-skillset-section source-skillset-skill-set">
           <Typography variant="h6">Skills</Typography>
           <TextField
-            fullWidth
             label="Search Skills"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             variant="outlined"
             size="small"
-            margin="normal"
+            fullWidth
           />
           <List className="source-skillset-skill-list">
             {filteredSkills.map((skill, index) => (
-              <ListItem key={index}>
+              <ListItem key={index}
+                secondaryAction={
+                  editIndex === index ? (
+                    <IconButton edge="end" onClick={() => handleConfirmEditSkill(index)}><Check /></IconButton>
+                  ) : (
+                    <>
+                      <IconButton edge="end" onClick={() => handleEditSkill(index)}><Edit /></IconButton>
+                      <IconButton edge="end" onClick={() => handleDeleteSkill(skill)}><Delete /></IconButton>
+                    </>
+                  )
+                }
+              >
                 {editIndex === index ? (
                   <TextField
                     value={editSkill}
@@ -95,22 +103,7 @@ const SourceSkillSet = () => {
                     size="small"
                     autoFocus
                   />
-                ) : (
-                  <>
-                    {skill}
-                    <IconButton edge="end" onClick={() => handleEditSkill(index)}>
-                      <Edit />
-                    </IconButton>
-                    <IconButton edge="end" onClick={() => handleDeleteSkill(skill)}>
-                      <Delete />
-                    </IconButton>
-                  </>
-                )}
-                {editIndex === index && (
-                  <IconButton edge="end" onClick={() => handleConfirmEditSkill(index)}>
-                    <Check />
-                  </IconButton>
-                )}
+                ) : skill}
               </ListItem>
             ))}
           </List>
@@ -125,7 +118,9 @@ const SourceSkillSet = () => {
             />
             <Button variant="contained" onClick={handleAddSkill}>Add</Button>
           </Box>
-          <Button variant="outlined" onClick={handleSave} sx={{ mt: 2 }}>Save All</Button>
+          <Button variant="outlined" startIcon={<Save />} onClick={handleSave} sx={{ mt: 3 }}>
+            Save All
+          </Button>
         </Box>
       </Box>
     </Paper>
