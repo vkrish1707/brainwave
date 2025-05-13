@@ -1,73 +1,72 @@
-// controllers/ebvpHierarchyController.js
+import React, { useEffect, useState } from 'react';
+import { Box, Button, MenuItem, Select, Typography, FormControl, InputLabel } from '@mui/material';
+import axios from 'axios';
 
-exports.getEBVPHierarchy = async function (req, res) {
-  const connection = req.connection;
+const EbvpHeader = ({ onFetchData }) => {
+  const [hierarchy, setHierarchy] = useState({});
+  const [week, setWeek] = useState('');
+  const [node1Options, setNode1Options] = useState([]);
+  const [node2Options, setNode2Options] = useState([]);
+  const [node3Options, setNode3Options] = useState([]);
 
-  try {
-    // Step 1: Get latest week
-    const weekQuery = `
-      SELECT DISTINCT WEEK_NUM FROM global_workforce ORDER BY WEEK_NUM DESC LIMIT 1
-    `;
-    const latestWeek = await new Promise((resolve, reject) => {
-      connection.execute({
-        sqlText: weekQuery,
-        complete: (err, stmt, rows) => {
-          if (err) return reject(err);
-          resolve(rows[0]?.WEEK_NUM);
-        },
-      });
+  const [selectedNode1, setSelectedNode1] = useState('');
+  const [selectedNode2, setSelectedNode2] = useState('');
+  const [selectedNode3, setSelectedNode3] = useState('');
+
+  useEffect(() => {
+    axios.get('/api/get-ebvp-hierarchy').then(res => {
+      setHierarchy(res.data.hierarchy || {});
+      setNode1Options(Object.keys(res.data.hierarchy || {}));
+      setWeek(res.data.week);
     });
+  }, []);
 
-    if (!latestWeek) {
-      return res.status(404).json({ message: "No week data found" });
-    }
+  const handleNode1Change = (value) => {
+    setSelectedNode1(value);
+    const node2s = hierarchy[value]?.node2List || [];
+    setNode2Options(node2s);
+    setSelectedNode2('');
+    setSelectedNode3('');
+    setNode3Options([]);
+  };
 
-    // Step 2: Fetch EBVP nodes for latest week
-    const dataQuery = `
-      SELECT EBVP_NODE_1, EBVP_NODE_2, EBVP_NODE_3 
-      FROM global_workforce 
-      WHERE WEEK_NUM = '${latestWeek}'
-    `;
+  const handleNode2Change = (value) => {
+    setSelectedNode2(value);
+    const node3s = hierarchy[selectedNode1]?.children[value] || [];
+    setNode3Options(node3s);
+    setSelectedNode3('');
+  };
 
-    const rawRows = await new Promise((resolve, reject) => {
-      connection.execute({
-        sqlText: dataQuery,
-        complete: (err, stmt, rows) => {
-          if (err) return reject(err);
-          resolve(rows);
-        },
-      });
-    });
+  return (
+    <Box display="flex" alignItems="center" gap={2} padding={2}>
+      <Typography variant="h6">Week: {week}</Typography>
 
-    // Step 3: Build nested hierarchy
-    const hierarchy = {};
-    for (const row of rawRows) {
-      const node1 = row.EBVP_NODE_1;
-      const node2 = row.EBVP_NODE_2;
-      const node3 = row.EBVP_NODE_3;
+      <FormControl size="small" fullWidth>
+        <InputLabel>EBVP Node 1</InputLabel>
+        <Select value={selectedNode1} label="EBVP Node 1" onChange={(e) => handleNode1Change(e.target.value)}>
+          {node1Options.map(n1 => <MenuItem key={n1} value={n1}>{n1}</MenuItem>)}
+        </Select>
+      </FormControl>
 
-      if (!hierarchy[node1]) {
-        hierarchy[node1] = { node2List: [], children: {} };
-      }
+      <FormControl size="small" fullWidth>
+        <InputLabel>EBVP Node 2</InputLabel>
+        <Select value={selectedNode2} label="EBVP Node 2" onChange={(e) => handleNode2Change(e.target.value)} disabled={!selectedNode1}>
+          {node2Options.map(n2 => <MenuItem key={n2} value={n2}>{n2}</MenuItem>)}
+        </Select>
+      </FormControl>
 
-      if (!hierarchy[node1].node2List.includes(node2)) {
-        hierarchy[node1].node2List.push(node2);
-        hierarchy[node1].children[node2] = [];
-      }
+      <FormControl size="small" fullWidth>
+        <InputLabel>EBVP Node 3</InputLabel>
+        <Select value={selectedNode3} label="EBVP Node 3" onChange={(e) => setSelectedNode3(e.target.value)} disabled={!selectedNode2}>
+          {node3Options.map(n3 => <MenuItem key={n3} value={n3}>{n3}</MenuItem>)}
+        </Select>
+      </FormControl>
 
-      if (!hierarchy[node1].children[node2].includes(node3)) {
-        hierarchy[node1].children[node2].push(node3);
-      }
-    }
-
-    return res.status(200).json({
-      message: "EBVP hierarchy fetched successfully",
-      week: latestWeek,
-      hierarchy,
-    });
-
-  } catch (err) {
-    console.error("Error fetching EBVP hierarchy:", err.message);
-    return res.status(500).json({ error: err.message });
-  }
+      <Button variant="contained" onClick={() => onFetchData({ week, selectedNode1, selectedNode2, selectedNode3 })}>
+        Get Data
+      </Button>
+    </Box>
+  );
 };
+
+export default EbvpHeader;
