@@ -1,52 +1,32 @@
-exports.modify_skill = async (req, res) => {
-  const { source, action, skill, previousSkill } = req.body;
-  const user = req.user || 'vmyLavar'; // replace with real user session if needed
-
+const getGlobalSkills = async () => {
   const connection = snowflake.createConnection(configParams);
+
   try {
     if (!connection.isUp()) {
       await connection.connectAsync();
     }
 
-    let sqlQuery = '';
+    const sqlQuery = `SELECT SKILL_NAME FROM global_skill_mappings WHERE SOURCE_NAME = 'global'`;
 
-    if (action === 'add') {
-      sqlQuery = `
-        INSERT INTO global_skill_mappings 
-        (SOURCE_NAME, SKILL_NAME, CREATED_BY, CREATED_AT) 
-        VALUES ('${source}', '${skill}', '${user}', CURRENT_TIMESTAMP)
-      `;
-    } else if (action === 'delete') {
-      sqlQuery = `
-        DELETE FROM global_skill_mappings 
-        WHERE SOURCE_NAME = '${source}' AND SKILL_NAME = '${skill}'
-      `;
-    } else if (action === 'update') {
-      sqlQuery = `
-        UPDATE global_skill_mappings 
-        SET SKILL_NAME = '${skill}', UPDATED_BY = '${user}', UPDATED_AT = CURRENT_TIMESTAMP 
-        WHERE SOURCE_NAME = '${source}' AND SKILL_NAME = '${previousSkill}'
-      `;
-    } else {
-      return res.status(400).json({ error: 'Invalid action type' });
-    }
-
-    await new Promise((resolve, reject) => {
+    const rows = await new Promise((resolve, reject) => {
       connection.execute({
         sqlText: sqlQuery,
-        complete: (err) => {
+        complete: (err, stmt, rows) => {
           if (err) {
-            console.error('Skill update failed:', err);
+            console.error("Failed to fetch global skills:", err);
             return reject(err);
           }
-          resolve();
+          resolve(rows);
         },
       });
     });
 
-    res.status(200).json({ message: `Skill ${action} successful` });
+    // Map just the SKILL_NAME fields into an array of strings
+    const skillsArray = rows.map(row => row.SKILL_NAME);
+    return skillsArray;
+
   } catch (err) {
-    console.error('modify_skill error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error("getGlobalSkills error:", err.message);
+    throw err;
   }
 };
