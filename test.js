@@ -4,33 +4,61 @@ const cursor = db.getCollection('socExecDashboard').find({ isLive: true });
 
 cursor.forEach(doc => {
     const socItem = doc.soc?.[0];
-    print('----------------------------------');
+    print('------------------------------');
     print(`Processing doc: ${doc._id}`);
 
-    if (socItem && typeof socItem.value === 'string') {
-        print(`Original soc value: ${socItem.value}`);
-        const [mm, dd, yy] = socItem.value.split('/');
-        print(`Parsed => MM: ${mm}, DD: ${dd}, YY: ${yy}`);
+    if (socItem && socItem.value) {
+        const val = socItem.value;
 
-        if (mm && dd && yy) {
-            const isoString = `20${yy}-${mm}-${dd}T00:00:00.000Z`;
-            print(`Constructed ISO String: ${isoString}`);
+        // Case 1: Already a Date object
+        if (val instanceof Date) {
+            print('✅ Already a Date object. Skipping...');
+            return;
+        }
 
-            const fullDate = new Date(isoString);
+        // Case 2: MM/DD/YY or MM/DD/YYYY
+        if (typeof val === 'string' && /^\d{2}\/\d{2}\/\d{2,4}$/.test(val)) {
+            const [mm, dd, yyOrYYYY] = val.split('/');
+            let yyyy = yyOrYYYY;
 
-            if (!isNaN(fullDate.getTime())) {
-                print(`Valid date: ${fullDate.toISOString()}`);
+            // Convert YY to YYYY
+            if (yyOrYYYY.length === 2) {
+                yyyy = `20${yyOrYYYY}`;
+            }
+
+            const isoStr = `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+            const parsedDate = new Date(isoStr);
+
+            if (!isNaN(parsedDate.getTime())) {
+                print(`✅ Parsed and updating: ${parsedDate.toISOString()}`);
                 db.getCollection('socExecDashboard').updateOne(
                     { _id: doc._id },
-                    { $set: { 'soc.0.value': fullDate.toISOString() } }
+                    { $set: { 'soc.0.value': parsedDate.toISOString() } }
                 );
             } else {
-                print(`Invalid date detected: ${isoString}`);
+                print(`❌ Invalid date from string: ${val}`);
             }
-        } else {
-            print('Date parts are not valid.');
+        }
+
+        // Case 3: ISO string format (but stored as string)
+        else if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+            const isoDate = new Date(val);
+            if (!isNaN(isoDate.getTime())) {
+                print(`ℹ️ ISO-like string parsed: ${isoDate.toISOString()}`);
+                db.getCollection('socExecDashboard').updateOne(
+                    { _id: doc._id },
+                    { $set: { 'soc.0.value': isoDate.toISOString() } }
+                );
+            } else {
+                print(`❌ Invalid ISO string: ${val}`);
+            }
+        }
+
+        // Unknown/unsupported format
+        else {
+            print(`⚠️ Unsupported format or type: ${JSON.stringify(val)}`);
         }
     } else {
-        print(`Skipping doc ${doc._id}, soc.0.value is not a string`);
+        print(`⚠️ soc.0.value missing in doc ${doc._id}`);
     }
 });
