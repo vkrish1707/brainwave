@@ -5,75 +5,70 @@ const cursor = db.getCollection('socExecDashboard').find({ isLive: true });
 cursor.forEach(doc => {
     const socItem = doc.soc?.[0];
     print('------------------------------');
-    print(`Processing doc: ${doc.socName} ${doc.siDieId}`);
+    print(`Processing doc: ${doc.siDieId || doc._id}`);
 
     if (socItem && socItem.value) {
         const val = socItem.value;
 
-        // CASE 1: Already a Date object
+        // Case 1: If it's a Date object
         if (val instanceof Date) {
-            const time =
-                val.getUTCHours() +
-                val.getUTCMinutes() +
-                val.getUTCSeconds() +
-                val.getUTCMilliseconds();
+            const iso = val.toISOString();
+            const timePart = iso.split('T')[1];
 
-            // If it's midnight already, no need to update
-            if (time === 0) {
-                print('✅ Already a Date object with 00:00:00.000Z. Skipping...');
-                return;
+            if (timePart !== '00:00:00.000Z') {
+                const normalized = new Date(iso.split('T')[0] + 'T00:00:00.000Z');
+                print(`🛠 Normalizing Date -> ${normalized.toISOString()}`);
+                db.getCollection('socExecDashboard').updateOne(
+                    { _id: doc._id },
+                    { $set: { 'soc.0.value': normalized } }
+                );
+            } else {
+                print('✅ Already normalized date. Skipping...');
             }
 
-            // Normalize to midnight
-            const normalized = new Date(Date.UTC(val.getUTCFullYear(), val.getUTCMonth(), val.getUTCDate()));
-            print(`✅ Normalizing Date object: ${normalized.toISOString()}`);
-            db.getCollection('socExecDashboard').updateOne(
-                { _id: doc._id },
-                { $set: { 'soc.0.value': normalized.toISOString() } }
-            );
             return;
         }
 
-        // CASE 2: MM/DD/YY or MM/DD/YYYY format
+        // Case 2: MM/DD/YY or MM/DD/YYYY format
         if (typeof val === 'string' && /^\d{2}\/\d{2}\/\d{2,4}$/.test(val)) {
             const [mm, dd, yyOrYYYY] = val.split('/');
             let yyyy = yyOrYYYY.length === 2 ? `20${yyOrYYYY}` : yyOrYYYY;
             const isoStr = `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
-            const parsedDate = new Date(isoStr);
+            const parsed = new Date(isoStr);
 
-            if (!Number.isNaN(parsedDate.getTime())) {
-                print(`✅ Parsed MM/DD/YYYY string: ${parsedDate.toISOString()}`);
+            if (!isNaN(parsed.getTime())) {
+                print(`✅ Converted MM/DD/YY -> ${parsed.toISOString()}`);
                 db.getCollection('socExecDashboard').updateOne(
                     { _id: doc._id },
-                    { $set: { 'soc.0.value': parsedDate.toISOString() } }
+                    { $set: { 'soc.0.value': parsed } }
                 );
-                return;
             } else {
-                print(`❌ Invalid MM/DD/YYYY string: ${val}`);
-                return;
+                print(`❌ Invalid MM/DD/YY string: ${val}`);
             }
+
+            return;
         }
 
-        // CASE 3: ISO-like string
+        // Case 3: ISO string but stored as string
         if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
-            const isoDate = new Date(val);
-            if (!Number.isNaN(isoDate.getTime())) {
-                const normalized = new Date(Date.UTC(isoDate.getUTCFullYear(), isoDate.getUTCMonth(), isoDate.getUTCDate()));
-                print(`ℹ️ ISO-like string parsed and normalized: ${normalized.toISOString()}`);
+            const parsed = new Date(val);
+            if (!isNaN(parsed.getTime())) {
+                const normalized = new Date(parsed.toISOString().split('T')[0] + 'T00:00:00.000Z');
+                print(`ℹ️ ISO string parsed & normalized: ${normalized.toISOString()}`);
                 db.getCollection('socExecDashboard').updateOne(
                     { _id: doc._id },
-                    { $set: { 'soc.0.value': normalized.toISOString() } }
+                    { $set: { 'soc.0.value': normalized } }
                 );
-                return;
             } else {
                 print(`❌ Invalid ISO string: ${val}`);
-                return;
             }
+
+            return;
         }
 
         // Unknown/unsupported format
-        print(`⚠️ Unsupported format or type: ${JSON.stringify(val)}`);
+        print(`⚠️ Unsupported format or type: (${typeof val}) - ${val instanceof Date ? val.toISOString() : val}`);
     } else {
-        print(`⚠️ soc.0.value missing in doc ${doc.siDieId}`);
+        print(`⚠️ soc.0.value missing in doc ${doc.siDieId || doc._id}`);
     }
 });
