@@ -1,23 +1,19 @@
-.ebvp-header {
-  color: white;
-}
+<div className="dashboard-grid">
+  <div className="card card-full">
+    {inProgress ? <Skeleton variant="rectangular" height={300} animation="wave" /> : (
+      <ReqStatusBarChart barChartData={barChartData} />
+    )}
+  </div>
 
-.ebvp-header .MuiInputBase-root,
-.ebvp-header .MuiInputLabel-root,
-.ebvp-header .MuiSelect-select,
-.ebvp-header .MuiMenuItem-root {
-  color: white;
-}
+  <div className="card card-half">
+    {inProgress ? <Skeleton variant="rectangular" height={300} animation="wave" /> : (
+      <ActivelyRecruitingPieChart pieData={pieChartData} />
+    )}
+  </div>
 
-.ebvp-dropdown-menu {
-  background-color: #1f2937;
-  color: white;
-}
-
-.ebvp-header .MuiOutlinedInput-notchedOutline {
-  border-color: white;
-}
-
-.ebvp-header .MuiSvgIcon-root {
-  color: white;
-}
+  <div className="card card-half">
+    {inProgress ? <Skeleton variant="rectangular" height={300} animation="wave" /> : (
+      <RecruitingDonutChart donutData={donutData} />
+    )}
+  </div>
+</div>
