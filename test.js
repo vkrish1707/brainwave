@@ -1,24 +1,45 @@
-.ebvp-header {
-  background-color: #111827; /* Dark background */
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 16px;
-  border-radius: 12px;
+// Step 3: Build nested hierarchy
+const hierarchy = {};
+
+for (const row of rawRows) {
+  const node1 = row.EBVP_TOP_NODE;
+  const node2 = row.EBVP_TOP_NODE_2;
+  const node3 = row.EBVP_TOP_NODE_3;
+
+  if (!node1) continue; // skip if node1 is falsy
+
+  // Initialize node1 if not present
+  if (!hierarchy[node1]) {
+    hierarchy[node1] = {
+      node2List: [],
+      children: {}
+    };
+  }
+
+  // Add node2 if valid and not already in node2List
+  if (node2 && node2 !== 'null' && node2 !== '') {
+    if (!hierarchy[node1].node2List.includes(node2)) {
+      hierarchy[node1].node2List.push(node2);
+    }
+
+    // Initialize children[node2] if not already
+    if (!Array.isArray(hierarchy[node1].children[node2])) {
+      hierarchy[node1].children[node2] = [];
+    }
+
+    // Add node3 if valid and not already present
+    if (node3 && node3 !== 'null' && node3 !== '') {
+      if (!hierarchy[node1].children[node2].includes(node3)) {
+        hierarchy[node1].children[node2].push(node3);
+      }
+    }
+  }
 }
 
-.tile-select {
-  background-color: #1f2937;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  padding: 8px 16px;
-  color: #fff;
-  transition: box-shadow 0.3s ease, border 0.3s ease;
-  flex: 1;
-  min-width: 200px;
-}
-
-.tile-select:focus-within {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.7); /* Blue glow */
-  outline: none;
-}
+// Return the structured response
+return res.status(200).json({
+  message: "EBVP hierarchy fetched successfully",
+  latestWeek: weekToFetch,
+  weeks,
+  hierarchy,
+});
