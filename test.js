@@ -1,36 +1,23 @@
-SELECT 
-  week_num,
-  EBVP_TOP_NODE,
-  EBVP_TOP_NODE_2,
-  EBVP_TOP_NODE_3,
-  SUM(hires_count) AS hires,
-  SUM(term_count) AS terminations
-FROM (
-  -- Hires
-  SELECT 
-    week_num,
-    EBVP_TOP_NODE,
-    EBVP_TOP_NODE_2,
-    EBVP_TOP_NODE_3,
-    COUNT(*) AS hires_count,
-    0 AS term_count
-  FROM global_hires
-  WHERE week_num = '${weekToFetch}'
-  GROUP BY week_num, EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3
+const setChartsData = (data, ebvpField, ebvpValue, hireTermData = []) => {
+  // Filter data by EBVP level if present
+  const filteredHireTermData = ebvpField && ebvpValue
+    ? hireTermData.filter((item) => item[ebvpField] === ebvpValue)
+    : hireTermData;
 
-  UNION ALL
+  // Group by week
+  const weekMap = {};
 
-  -- Terminations
-  SELECT 
-    week_num,
-    EBVP_TOP_NODE,
-    EBVP_TOP_NODE_2,
-    EBVP_TOP_NODE_3,
-    0 AS hires_count,
-    COUNT(*) AS term_count
-  FROM global_terminations
-  WHERE week_num = '${weekToFetch}'
-  GROUP BY week_num, EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3
-) AS combined
-GROUP BY week_num, EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3
-ORDER BY week_num;
+  for (const row of filteredHireTermData) {
+    const week = row.week_num;
+    if (!weekMap[week]) {
+      weekMap[week] = { week, hires: 0, terminations: 0 };
+    }
+    weekMap[week].hires += row.hires;
+    weekMap[week].terminations += row.terminations;
+  }
+
+  const scatterData = Object.values(weekMap);
+
+  // Pass it to chart
+  setScatterChartData(scatterData);
+};
