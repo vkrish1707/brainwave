@@ -1,45 +1,89 @@
-.ebvp-header {
-  color: white;
-  margin-top: -15px;
-}
+// Backend: Add new query to get hires and terminations per EBVP node and week
+exports.getReqInfoByWeek = async function (req, res) {
+  const userFullName = `${user.givenName} ${user.sn}`;
+  let reqSqlQuery = '';
+  let weekToFetch = workWeek;
 
-.ebvp-header .MuiFormControl-root {
-  background-color: #1f2937;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  padding: 6px 12px;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
-}
+  if (!workWeek) {
+    const latestWorkWeekInfo = await getLatestWorkWeek(connection);
+    weekToFetch = latestWorkWeekInfo.latestWeek;
+  }
 
-.ebvp-header .MuiFormControl-root:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7);
-  transform: translateY(-2px);
-}
+  let reqFullQuery = `SELECT 
+    req,
+    EBVP_TOP_NODE,
+    EBVP_TOP_NODE_2,
+    EBVP_TOP_NODE_3,
+    application_status,
+    sub_region,
+    job_posting_country
+  FROM global_requisitions
+  WHERE week_num = '${weekToFetch}' AND status = 'Opened';`;
 
-.ebvp-header .MuiInputBase-root,
-.ebvp-header .MuiInputLabel-root,
-.ebvp-header .MuiSelect-select,
-.ebvp-header .MuiMenuItem-root,
-.ebvp-header .MuiSvgIcon-root {
-  color: white;
-}
+  let hireTermQuery = `SELECT 
+    week_num,
+    EBVP_TOP_NODE,
+    EBVP_TOP_NODE_2,
+    EBVP_TOP_NODE_3,
+    COUNT(*) FILTER (WHERE table_name = 'global_hires') as hires,
+    COUNT(*) FILTER (WHERE table_name = 'global_terminations') as terminations
+  FROM (
+    SELECT 'global_hires' as table_name, * FROM global_hires
+    UNION ALL
+    SELECT 'global_terminations' as table_name, * FROM global_terminations
+  ) combined
+  WHERE week_num = '${weekToFetch}'
+  GROUP BY week_num, EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3;`;
 
-.ebvp-header .MuiOutlinedInput-notchedOutline {
-  border-color: #959595;
-}
+  if (!isAdmin && !isFullAccess) {
+    const configList = await getUserDataConfig(connection, 'general', 'user');
+    const userMatchConditions = generateHRFilterQuery(configList, userFullName, tableName);
 
-.ebvp-dropdown-menu {
-  background-color: #161B22 !important;
-  color: white;
-}
+    reqSqlQuery = `SELECT 
+      req,
+      EBVP_TOP_NODE,
+      EBVP_TOP_NODE_2,
+      EBVP_TOP_NODE_3,
+      application_status,
+      sub_region,
+      job_posting_country
+    FROM global_requisitions
+    WHERE ${userMatchConditions} AND week_num = '${weekToFetch}' AND status = 'Opened';`;
 
-<Select
-  value={selectedNode1}
-  label="EBVP Top Node"
-  onChange={(e) => handleNode1Change(e.target.value)}
-  MenuProps={{
-    PaperProps: {
-      className: 'ebvp-dropdown-menu',
-    },
-  }}
->
+    hireTermQuery += ` AND ${userMatchConditions}`;
+  }
+
+  const reqsInfo = await executeSync(connection, reqSqlQuery);
+  const hireTermInfo = await executeSync(connection, hireTermQuery);
+
+  return res.status(200).json({
+    data: reqsInfo.data,
+    hireTermData: hireTermInfo.data,
+    message: 'Data fetched successfully'
+  });
+};
+
+// Frontend: Handle new data and filtering
+const setChartsData = (data, ebvpField, ebvpValue, hireTermData) => {
+  if (!data.length) return;
+  setInProgress(false);
+
+  const filteredData = ebvpField && ebvpValue ? data.filter(item => item[ebvpField] === ebvpValue) : data;
+
+  // Process hire vs terminations for scatter chart
+  const scatterMap = {};
+  const nodeField = ebvpField || 'EBVP_TOP_NODE';
+
+  for (const item of hireTermData) {
+    const nodeKey = item[nodeField];
+    if (!scatterMap[nodeKey]) scatterMap[nodeKey] = [];
+    scatterMap[nodeKey].push({
+      week: item.week_num,
+      hires: item.hires,
+      terminations: item.terminations
+    });
+  }
+
+  const scatterData = Object.entries(scatterMap).map(([key, data]) => ({ label: key, data }));
+  setHireTermScatterData(scatterData);
+};
