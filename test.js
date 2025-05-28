@@ -1,98 +1,101 @@
+// RDCMenuPage.js
 import React from 'react';
-import './NewHeader.css';
-import SettingsIcon from '@mui/icons-material/Settings';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import { motion, AnimatePresence } from 'framer-motion';
+import './RDCMenuPage.css';
+import { useNavigate } from 'react-router-dom';
 
-const NewHeader = () => {
+const menuItems = [
+  {
+    title: 'Dashboard',
+    color: '#4CAF50',
+    gridColumn: 'span 1',
+    gridRow: 'span 1',
+    subItems: [
+      { title: 'Overview', path: '/dashboard/overview' },
+      { title: 'Performance', path: '/dashboard/performance' }
+    ]
+  },
+  {
+    title: 'Reports',
+    color: '#2196F3',
+    gridColumn: 'span 2',
+    gridRow: 'span 1',
+    subItems: [
+      { title: 'Monthly', path: '/reports/monthly' },
+      { title: 'Annual', path: '/reports/annual' }
+    ]
+  },
+  {
+    title: 'Settings',
+    color: '#9C27B0',
+    gridColumn: 'span 1',
+    gridRow: 'span 2',
+    subItems: [
+      { title: 'User Preferences', path: '/settings/preferences' },
+      { title: 'System', path: '/settings/system' }
+    ]
+  }
+];
+
+export default function RDCMenuPage() {
+  const [activeMenu, setActiveMenu] = React.useState(null);
+  const navigate = useNavigate();
+
+  const handleTileClick = (item) => {
+    if (activeMenu?.title === item.title) {
+      setActiveMenu(null);
+    } else {
+      setActiveMenu(item);
+    }
+  };
+
+  const handleSubClick = (path) => {
+    navigate(path);
+  };
+
   return (
-    <header className="new-header">
-      <div className="header-left">
-        <img src="/assets/amd-logo.png" alt="AMD Ops" className="logo" />
-        <span className="breadcrumb">RDC Home</span>
+    <div className="rdc-home">
+      <div className="tile-grid">
+        {menuItems.map((item, index) => (
+          <motion.div
+            key={index}
+            className="tile"
+            style={{
+              backgroundColor: item.color,
+              gridColumn: item.gridColumn,
+              gridRow: item.gridRow
+            }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => handleTileClick(item)}
+          >
+            {item.title}
+          </motion.div>
+        ))}
       </div>
 
-      <div className="header-center">
-        <div className="title">R&D Central Operations Dashboard</div>
-        <div className="subtitle">AMD Confidential</div>
-      </div>
-
-      <div className="header-right">
-        <SettingsIcon className="icon" />
-        <HelpOutlineIcon className="icon" />
-        <span className="username">sshong</span>
-        <img src="/assets/profile-placeholder.png" alt="Profile" className="profile-pic" />
-      </div>
-    </header>
+      <AnimatePresence>
+        {activeMenu && (
+          <motion.div
+            className="sub-menu"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            {activeMenu.subItems.map((sub, i) => (
+              <motion.div
+                key={i}
+                className="sub-menu-item"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleSubClick(sub.path)}
+              >
+                {sub.title}
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
-};
-
-export default NewHeader;
-
-
-/* CustomHeader.css */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: #161b22;
-  color: white;
-  height: 80px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.logo {
-  height: 40px;
-}
-
-.breadcrumb {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.header-center {
-  text-align: center;
-}
-
-.header-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.header-subtitle {
-  font-size: 12px;
-  color: #ff4d4f;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.icon {
-  cursor: pointer;
-  color: white;
-}
-
-.username {
-  font-size: 14px;
-}
-
-.profile-pic {
-  width: 32px;
-  height: 32px;
-  background-color: #ccc;
-  border-radius: 50%;
-  overflow: hidden;
-  background-image: url('/assets/profile-placeholder.png');
-  background-size: cover;
-  background-position: center;
 }
