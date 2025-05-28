@@ -99,3 +99,72 @@ export default function RDCMenuPage() {
     </div>
   );
 }
+
+/* rdcMenuPage.css */
+
+.rdc-menu-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px;
+  padding: 30px;
+  background-color: #0d1117;
+  min-height: 100vh;
+  color: #fff;
+}
+
+.tile {
+  background-color: #1f2937;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+.tile-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.tile-subitems {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #111827;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.tile-subitems ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tile-subitems li {
+  padding: 6px 12px;
+  color: #f3f4f6;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.tile-subitems li:hover {
+  background-color: #2563eb;
+}
