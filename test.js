@@ -1,170 +1,72 @@
-// RDCMenuPage.js
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import './RDCMenuPage.css';
-import { useNavigate } from 'react-router-dom';
+/* RDCMenuPage.css */
 
-const menuItems = [
-  {
-    title: 'Dashboard',
-    color: '#4CAF50',
-    gridColumn: 'span 1',
-    gridRow: 'span 1',
-    subItems: [
-      { title: 'Overview', path: '/dashboard/overview' },
-      { title: 'Performance', path: '/dashboard/performance' }
-    ]
-  },
-  {
-    title: 'Reports',
-    color: '#2196F3',
-    gridColumn: 'span 2',
-    gridRow: 'span 1',
-    subItems: [
-      { title: 'Monthly', path: '/reports/monthly' },
-      { title: 'Annual', path: '/reports/annual' }
-    ]
-  },
-  {
-    title: 'Settings',
-    color: '#9C27B0',
-    gridColumn: 'span 1',
-    gridRow: 'span 2',
-    subItems: [
-      { title: 'User Preferences', path: '/settings/preferences' },
-      { title: 'System', path: '/settings/system' }
-    ]
-  }
-];
-
-export default function RDCMenuPage() {
-  const [activeMenu, setActiveMenu] = React.useState(null);
-  const navigate = useNavigate();
-
-  const handleTileClick = (item) => {
-    if (activeMenu?.title === item.title) {
-      setActiveMenu(null);
-    } else {
-      setActiveMenu(item);
-    }
-  };
-
-  const handleSubClick = (path) => {
-    navigate(path);
-  };
-
-  return (
-    <div className="rdc-home">
-      <div className="tile-grid">
-        {menuItems.map((item, index) => (
-          <motion.div
-            key={index}
-            className="tile"
-            style={{
-              backgroundColor: item.color,
-              gridColumn: item.gridColumn,
-              gridRow: item.gridRow
-            }}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => handleTileClick(item)}
-          >
-            {item.title}
-          </motion.div>
-        ))}
-      </div>
-
-      <AnimatePresence>
-        {activeMenu && (
-          <motion.div
-            className="sub-menu"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-          >
-            {activeMenu.subItems.map((sub, i) => (
-              <motion.div
-                key={i}
-                className="sub-menu-item"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleSubClick(sub.path)}
-              >
-                {sub.title}
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+.rdc-home {
+  height: 100vh;
+  width: 100%;
+  background-color: #0d1117;
+  padding: 40px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
 }
 
-/* rdcMenuPage.css */
-
-.rdc-menu-container {
+.tile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-auto-rows: 160px;
   gap: 20px;
-  padding: 30px;
-  background-color: #0d1117;
-  min-height: 100vh;
-  color: #fff;
+  z-index: 1;
 }
 
 .tile {
-  background-color: #1f2937;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  text-align: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 16px;
   cursor: pointer;
-  position: relative;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  user-select: none;
 }
 
 .tile:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-.tile-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.tile-subitems {
+.sub-menu {
   position: absolute;
-  bottom: -10px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  background-color: #111827;
-  border-radius: 8px;
-  padding: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  transform: translate(-50%, -50%);
+  background: #161b22;
+  padding: 40px;
+  border-radius: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   z-index: 10;
-  white-space: nowrap;
+  width: 60%;
+  max-width: 800px;
+  text-align: center;
 }
 
-.tile-subitems ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.sub-menu-item {
+  background: #222b35;
+  color: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease, background 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.tile-subitems li {
-  padding: 6px 12px;
-  color: #f3f4f6;
-  font-size: 0.9rem;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.tile-subitems li:hover {
-  background-color: #2563eb;
+.sub-menu-item:hover {
+  background: #2d3748;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
