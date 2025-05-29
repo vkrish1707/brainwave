@@ -1,40 +1,65 @@
-.rdc-home {
-  height: 95vh;
-  width: 100%;
-  background-color: #0d1117;
-  padding: 40px;
-  box-sizing: border-box;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
+HR-Metrics
+#1E88E5
+WBS Vending Machine
+#42A5F5
+Roadmaps
+#1976D2
+PBA
+#26C6DA
+IP/SOC Execution Dashboard
+#FFA726
+IP Library
+#283593
+ScopingTool (1)
+#66BB6A
+ScopingTool (2)
+#66BB6A
+IP Investments
+#AB47BC
+Old Look
+#37474F
+Third Party IP
+#26C6DA
+Data Sandbox
+#AB47BC
 
-.tile-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--tile-size), 1fr));
-  grid-auto-rows: var(--tile-size);
-  gap: 20px;
-  max-width: 1200px;
-  width: 100%;
-  justify-content: center;
-  align-content: center;
-  --tile-size: 180px;
-}
 
-React.useEffect(() => {
-  const baseSize = 180;
-  const totalItems = menuItems.length;
-  const rows = Math.ceil(totalItems / 4); // estimate 4 tiles per row
-  const idealHeight = rows * (baseSize + 20); // + gap
+Color Role
+Shade Hex
+Purpose / Feel
+Primary
+#1E88E5
+Calm blue (main apps)
+Accent
+#1976D2
+Slightly darker variation
+Highlight
+#42A5F5
+Lighter card or hover
+Secondary
+#26C6DA
+Fresh teal (secondary tile)
+Deep Contrast
+#283593
+Deep blue (important)
+Green Tint
+#66BB6A
+Approval / reports / finance
+Warning-style
+#FFA726
+Execution / alerts
+Subtle Purple
+#AB47BC
+Admin / tools
+Gray-blue
+#37474F
+Default tiles (optional)
 
-  const root = document.documentElement;
 
-  if (idealHeight > window.innerHeight * 0.85) {
-    const reducedSize = Math.floor((window.innerHeight * 0.8) / rows) - 20;
-    root.style.setProperty('--tile-size', `${Math.max(reducedSize, 100)}px`);
-  } else {
-    root.style.setProperty('--tile-size', `${baseSize}px`);
-  }
-}, [menuItems.length]);
+•	Critical functions (e.g., HR-Metrics, Execution Dashboard): #1E88E5, #1976D2
+	•	Insights/Reports (e.g., IP Investments, Scoping Tool): #42A5F5, #26C6DA
+	•	Secondary/Utility: #66BB6A, #AB47BC
+	•	Historical/Legacy views (e.g., “Old Look”): #37474F
+
+
+
