@@ -1,65 +1,116 @@
-HR-Metrics
-#1E88E5
-WBS Vending Machine
-#42A5F5
-Roadmaps
-#1976D2
-PBA
-#26C6DA
-IP/SOC Execution Dashboard
-#FFA726
-IP Library
-#283593
-ScopingTool (1)
-#66BB6A
-ScopingTool (2)
-#66BB6A
-IP Investments
-#AB47BC
-Old Look
-#37474F
-Third Party IP
-#26C6DA
-Data Sandbox
-#AB47BC
+// Updated RDCMenuPage.js with immersive transition for active tile
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import './RDCMenuPage.css';
+import { useNavigate } from 'react-router-dom';
 
+const menuItems = [
+  {
+    title: 'Dashboard',
+    color: '#0F4C75',
+    gridColumn: 'span 1',
+    gridRow: 'span 1',
+    subItems: [
+      { title: 'Overview', path: '/dashboard/overview' },
+      { title: 'Performance', path: '/dashboard/performance' }
+    ]
+  },
+  {
+    title: 'Reports',
+    color: '#3282B8',
+    gridColumn: 'span 2',
+    gridRow: 'span 1',
+    subItems: [
+      { title: 'Monthly', path: '/reports/monthly' },
+      { title: 'Annual', path: '/reports/annual' }
+    ]
+  },
+  {
+    title: 'Settings',
+    color: '#1B262C',
+    gridColumn: 'span 1',
+    gridRow: 'span 2',
+    subItems: [
+      { title: 'User Preferences', path: '/settings/preferences' },
+      { title: 'System', path: '/settings/system' }
+    ]
+  }
+];
 
-Color Role
-Shade Hex
-Purpose / Feel
-Primary
-#1E88E5
-Calm blue (main apps)
-Accent
-#1976D2
-Slightly darker variation
-Highlight
-#42A5F5
-Lighter card or hover
-Secondary
-#26C6DA
-Fresh teal (secondary tile)
-Deep Contrast
-#283593
-Deep blue (important)
-Green Tint
-#66BB6A
-Approval / reports / finance
-Warning-style
-#FFA726
-Execution / alerts
-Subtle Purple
-#AB47BC
-Admin / tools
-Gray-blue
-#37474F
-Default tiles (optional)
+export default function RDCMenuPage() {
+  const [activeMenu, setActiveMenu] = React.useState(null);
+  const [clickedIndex, setClickedIndex] = React.useState(null);
+  const navigate = useNavigate();
 
+  const handleTileClick = (item, index) => {
+    if (activeMenu?.title === item.title) {
+      setActiveMenu(null);
+      setClickedIndex(null);
+    } else {
+      setActiveMenu(item);
+      setClickedIndex(index);
+    }
+  };
 
-•	Critical functions (e.g., HR-Metrics, Execution Dashboard): #1E88E5, #1976D2
-	•	Insights/Reports (e.g., IP Investments, Scoping Tool): #42A5F5, #26C6DA
-	•	Secondary/Utility: #66BB6A, #AB47BC
-	•	Historical/Legacy views (e.g., “Old Look”): #37474F
+  const handleSubClick = (path) => {
+    navigate(path);
+  };
 
+  return (
+    <div className="rdc-home">
+      <div className="tile-grid">
+        <AnimatePresence>
+          {menuItems.map((item, index) => (
+            <motion.div
+              key={index}
+              className="tile"
+              style={{
+                backgroundColor: item.color,
+                gridColumn: item.gridColumn,
+                gridRow: item.gridRow,
+                zIndex: activeMenu && clickedIndex === index ? 2 : 0
+              }}
+              whileHover={!activeMenu ? { scale: 1.03 } : {}}
+              whileTap={!activeMenu ? { scale: 0.97 } : {}}
+              onClick={() => handleTileClick(item, index)}
+              initial={{ opacity: 1 }}
+              animate={{
+                opacity: activeMenu && clickedIndex !== index ? 0 : 1,
+                scale: activeMenu && clickedIndex === index ? 1.1 : 1,
+                x: activeMenu && clickedIndex === index ? -100 : 0,
+                y: activeMenu && clickedIndex === index ? -100 : 0
+              }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              {item.title}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
-
+      <AnimatePresence>
+        {activeMenu && (
+          <motion.div
+            className="sub-menu-floating"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            {activeMenu.subItems.map((sub, i) => (
+              <motion.div
+                key={i}
+                className="sub-menu-item"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleSubClick(sub.path)}
+              >
+                {sub.title}
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
