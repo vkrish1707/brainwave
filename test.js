@@ -1,40 +1,30 @@
-.sub-menu-item {
-  padding: 1rem 2rem;
-  border-radius: 1rem;
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tile-text);
+  font-size: 18px;
   font-weight: bold;
-  letter-spacing: 0.1ch;
-  text-transform: uppercase;
-  border: 2px solid transparent;
-  background: linear-gradient(#1e1e2f, #1e1e2f) padding-box,
-              radial-gradient(circle at center, #00fff7, #00a29b, transparent) border-box;
-  color: white;
-  position: relative;
+  border-radius: 16px;
   cursor: pointer;
+  user-select: none;
+  padding: 1rem;
+  background: linear-gradient(var(--tile-fill), var(--tile-fill)) padding-box,
+              radial-gradient(circle at center, var(--tile-glow), transparent) border-box;
+  border: 2px solid transparent;
+  box-shadow: 0 0 12px rgba(0, 255, 247, 0.2);
   transition: all 0.3s ease;
-  background-clip: padding-box;
-  box-shadow: 0 0 8px rgba(0, 255, 240, 0.5); /* subtle glow */
 }
 
-.sub-menu-item:hover {
-  transform: scale(1.05);
-  box-shadow:
-    0 0 12px rgba(0, 255, 240, 0.9), /* strong glow */
-    0 0 20px rgba(0, 255, 240, 0.6); /* outer halo */
-  border-color: #00fff7;
+.tile:hover {
+  box-shadow: 0 0 25px var(--tile-glow);
+  transform: scale(1.03);
+  filter: brightness(1.1);
 }
-.sub-menu-item::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 1rem;
-  background: radial-gradient(circle, rgba(0, 255, 240, 0.4) 0%, transparent 80%);
-  filter: blur(12px);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
+.rdc-home {
+  --tile-base: #0d1117;
+  --tile-fill: #1e1e2f;
+  --tile-glow: #00fff7;
+  --tile-border: #00fff7;
+  --tile-text: white;
 }
-.sub-menu-item:hover::after {
-  opacity: 1;
-}
-
-
