@@ -1,36 +1,36 @@
-const setReportsData = (data, selectedNode = null) => {
-  if (!Array.isArray(data)) return [];
+const getRowSpan = (params) => {
+  const currentNode = params.data.ebvpNode;
+  const allData = params.api.getDisplayedRowAtIndex(params.rowIndex).dataList;
 
-  // Choose group key: if selectedNode exists, use EBVP_TOP_NODE_2 else use EBVP_TOP_NODE
-  const groupKey = selectedNode ? "EBVP_TOP_NODE_2" : "EBVP_TOP_NODE";
-
-  const groupedMap = new Map();
-
-  data.forEach((item) => {
-    const topNode = item[groupKey];
-    const vp = item.VP;
-    const q2HC = Number(item.Q2_TO_DATE_HC || 0);
-
-    if (!groupedMap.has(topNode)) {
-      groupedMap.set(topNode, new Map());
+  let span = 1;
+  for (let i = params.rowIndex + 1; i < allData.length; i++) {
+    if (allData[i].ebvpNode === currentNode) {
+      span++;
+    } else {
+      break;
     }
-
-    const vpMap = groupedMap.get(topNode);
-
-    if (!vpMap.has(vp)) {
-      vpMap.set(vp, { ebvpNode: topNode, vpName: vp, q2HC: 0 });
-    }
-
-    vpMap.get(vp).q2HC += q2HC;
-  });
-
-  // Flatten the result for AG Grid
-  const result = [];
-  groupedMap.forEach((vpMap, topNode) => {
-    vpMap.forEach((vpData) => {
-      result.push(vpData);
-    });
-  });
-
-  return result;
+  }
+  return span;
 };
+
+const columnDefs = [
+  {
+    headerName: 'EBVP Node',
+    field: 'ebvpNode',
+    rowSpan: params => getRowSpan(params),
+    cellClassRules: {
+      'row-span-cell': 'true', // optional for custom style
+    },
+    cellStyle: { verticalAlign: 'middle' },
+  },
+  {
+    headerName: 'VP Name',
+    field: 'vpName',
+    flex: 2,
+    cellStyle: {
+      fontSize: '16px',
+      padding: '10px',
+    },
+  },
+  // Add other columns...
+];
