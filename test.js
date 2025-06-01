@@ -1,52 +1,75 @@
-function mergeMainWithTargets(mainArray, targetArray) {
-  const groupMap = new Map();
+// Update: handleReportsData remains unchanged (it already groups by EBVP level properly)
 
-  // Step 1: Group and accumulate VP data
-  for (const item of mainArray) {
-    const key = `${item.EBVP_TOP_NODE}||${item.EBVP_TOP_NODE_2}||${item.EBVP_TOP_NODE_3 || ''}`;
-    
-    if (!groupMap.has(key)) {
-      groupMap.set(key, {
-        EBVP_TOP_NODE: item.EBVP_TOP_NODE,
-        EBVP_TOP_NODE_2: item.EBVP_TOP_NODE_2,
-        EBVP_TOP_NODE_3: item.EBVP_TOP_NODE_3 || null,
-        q2HC: 0,
-        hiredByQ2: 0,
-        openReqsAfterQ2: 0,
-        target: 0,
-        vpDetails: []
-      });
-    }
+// AG Grid column definitions with dynamic VP column and master-detail setup
+const getColumnDefs = (ebvpField) => {
+  const columns = [
+    {
+      headerName: 'EBVP Node',
+      field: 'ebvpNode',
+      rowSpan: rowSpan,
+    },
+  ];
 
-    const group = groupMap.get(key);
-    group.q2HC += Number(item.Q2_TO_DATE_HC || 0);
-    group.hiredByQ2 += Number(item.HIRED_BY_Q2 || 0);
-    group.openReqsAfterQ2 += Number(item.OPEN_REQS_AFTER_Q2 || 0);
-
-    if (item.VP) {
-      group.vpDetails.push({
-        vpName: item.VP,
-        q2HC: Number(item.Q2_TO_DATE_HC || 0),
-        hiredByQ2: Number(item.HIRED_BY_Q2 || 0),
-        openReqsAfterQ2: Number(item.OPEN_REQS_AFTER_Q2 || 0)
-      });
-    }
+  if (ebvpField === 'EBVP_TOP_NODE') {
+    columns.push({
+      headerName: 'VP Name',
+      field: 'vpName',
+      flex: 1,
+      cellRenderer: (params) => {
+        const vps = params.data?.vpDetails || [];
+        return vps.length > 1
+          ? `${vps[0].vpName} (+${vps.length - 1} more)`
+          : vps[0]?.vpName || '';
+      },
+    });
   }
 
-  // Step 2: Add targets using best-effort fallback (node3 → node2 match)
-  for (const target of targetArray) {
-    const fullKey = `${target.EBVP_TOP_NODE}||${target.EBVP_TOP_NODE_2}||${target.EBVP_TOP_NODE_3 || ''}`;
-    const fallbackKey = `${target.EBVP_TOP_NODE}||${target.EBVP_TOP_NODE_2}||`;
-
-    let group = groupMap.get(fullKey);
-    if (!group) {
-      group = groupMap.get(fallbackKey);
+  columns.push(
+    {
+      headerName: 'Q2 To Date HC',
+      field: 'q2HC',
+      aggFunc: 'sum',
+      flex: 1,
+      cellStyle: { fontSize: '16px', textAlign: 'center' },
+    },
+    {
+      headerName: "Hired by Q2'25 Start Date",
+      field: 'hiredByQ2',
+      aggFunc: 'sum',
+      flex: 1,
+      cellStyle: { fontSize: '16px', textAlign: 'right' },
+    },
+    {
+      headerName: 'Q2 Target',
+      field: 'target',
+      aggFunc: 'sum',
+      flex: 1,
+      cellStyle: { fontSize: '16px', textAlign: 'right' },
     }
+  );
 
-    if (group) {
-      group.target += Number(target.target || 0);
-    }
-  }
+  return columns;
+};
 
-  return Array.from(groupMap.values());
-}
+// Master-detail configuration for AG Grid
+const detailCellRendererParams = {
+  detailGridOptions: {
+    columnDefs: [
+      { headerName: 'VP Name', field: 'vpName' },
+      { headerName: 'Q2 HC', field: 'q2HC' },
+      { headerName: 'Hired By Q2', field: 'hiredByQ2' },
+      { headerName: 'Open Reqs After Q2', field: 'openReqsAfterQ2' },
+    ],
+  },
+  getDetailRowData: (params) => {
+    params.successCallback(params.data?.vpDetails || []);
+  },
+};
+
+// Grid setup
+const gridOptions = {
+  columnDefs: getColumnDefs(ebvpField),
+  rowData: rowData,
+  masterDetail: true,
+  detailCellRendererParams: ebvpField === 'EBVP_TOP_NODE' ? detailCellRendererParams : undefined,
+};
