@@ -1,30 +1,11 @@
-// Update: handleReportsData remains unchanged (it already groups by EBVP level properly)
-
-// AG Grid column definitions with dynamic VP column and master-detail setup
 const getColumnDefs = (ebvpField) => {
-  const columns = [
+  const baseCols = [
     {
       headerName: 'EBVP Node',
       field: 'ebvpNode',
       rowSpan: rowSpan,
+      cellRenderer: 'MergedCellRender',
     },
-  ];
-
-  if (ebvpField === 'EBVP_TOP_NODE') {
-    columns.push({
-      headerName: 'VP Name',
-      field: 'vpName',
-      flex: 1,
-      cellRenderer: (params) => {
-        const vps = params.data?.vpDetails || [];
-        return vps.length > 1
-          ? `${vps[0].vpName} (+${vps.length - 1} more)`
-          : vps[0]?.vpName || '';
-      },
-    });
-  }
-
-  columns.push(
     {
       headerName: 'Q2 To Date HC',
       field: 'q2HC',
@@ -45,31 +26,58 @@ const getColumnDefs = (ebvpField) => {
       aggFunc: 'sum',
       flex: 1,
       cellStyle: { fontSize: '16px', textAlign: 'right' },
+    },
+    {
+      headerName: 'Delta to Target',
+      valueGetter: (params) => {
+        const { target, q2HC } = params.data;
+        return target - q2HC;
+      },
+      flex: 1,
+      cellStyle: { fontSize: '16px', textAlign: 'right' },
+    },
+    {
+      headerName: 'Open Reqs After Q2',
+      field: 'openReqsAfterQ2',
+      aggFunc: 'sum',
+      flex: 1,
+      cellStyle: { fontSize: '16px', textAlign: 'right' },
     }
-  );
+  ];
 
-  return columns;
+  if (ebvpField === 'EBVP_TOP_NODE') {
+    return baseCols;
+  }
+
+  // If grouping by EBVP_TOP_NODE_2 or deeper, show VP Name column
+  return [
+    {
+      headerName: 'VP Name',
+      field: 'vpName',
+      flex: 1,
+      cellStyle: { fontSize: '16px', textAlign: 'center' },
+    },
+    ...baseCols
+  ];
 };
 
-// Master-detail configuration for AG Grid
 const detailCellRendererParams = {
   detailGridOptions: {
-    columnDefs: [
-      { headerName: 'VP Name', field: 'vpName' },
-      { headerName: 'Q2 HC', field: 'q2HC' },
-      { headerName: 'Hired By Q2', field: 'hiredByQ2' },
-      { headerName: 'Open Reqs After Q2', field: 'openReqsAfterQ2' },
-    ],
+    columnDefs: getColumnDefs('VP'),  // Same structure but for vpDetails array
+    defaultColDef: {
+      flex: 1,
+      resizable: true,
+    },
   },
   getDetailRowData: (params) => {
-    params.successCallback(params.data?.vpDetails || []);
-  },
+    params.successCallback(params.data.vpDetails || []);
+  }
 };
-
-// Grid setup
 const gridOptions = {
-  columnDefs: getColumnDefs(ebvpField),
+  columnDefs: getColumnDefs(currentEbvpField),
   rowData: rowData,
   masterDetail: true,
-  detailCellRendererParams: ebvpField === 'EBVP_TOP_NODE' ? detailCellRendererParams : undefined,
+  detailCellRendererParams,
+  groupIncludeFooter: true,
+  animateRows: true,
 };
