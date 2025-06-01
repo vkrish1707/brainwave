@@ -1,59 +1,31 @@
-WITH workforce_cte AS (
-    SELECT 
-        EBVP_TOP_NODE,
-        EBVP_TOP_NODE_2,
-        EBVP_TOP_NODE_3,
-        REPORTS_TO_3 AS VP,
-        COUNT(*) AS Q2_TO_DATE_HC
-    FROM GLOBAL_WORKFORCE
-    WHERE WEEK_NUM = 'WW1925'
-    GROUP BY EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3, REPORTS_TO_3
-),
+const pipeline = [
+  {
+    $match: {
+      submit_period: "2025 Q2",
+      cost_element_name: "HC_reg"
+    }
+  },
+  {
+    $group: {
+      _id: {
+        ebvp_top_node: "$cost_center_level_4_id",
+        ebvp_top_node_2: "$cost_center_level_5_id",
+        ebvp_top_node_3: "$cost_center_level_6_id",
+        vp: "$reports_to_3"
+      },
+      total_target: { $sum: "$target" }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      ebvp_top_node: "$_id.ebvp_top_node",
+      ebvp_top_node_2: "$_id.ebvp_top_node_2",
+      ebvp_top_node_3: "$_id.ebvp_top_node_3",
+      vp: "$_id.vp",
+      target: "$total_target"
+    }
+  }
+];
 
-hired_by_q2_cte AS (
-    SELECT 
-        EBVP_TOP_NODE,
-        EBVP_TOP_NODE_2,
-        EBVP_TOP_NODE_3,
-        REPORTS_TO_3 AS VP,
-        COUNT(*) AS HIRED_BY_Q2
-    FROM GLOBAL_REQUISITIONS
-    WHERE ACTUAL_START_DATE <= '2025-06-30'
-      AND EMPLOYEE_GROUP IN ('A-Regular Salaried', 'B-Regular Hourly')
-    GROUP BY EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3, REPORTS_TO_3
-),
-
-open_reqs_after_q2_cte AS (
-    SELECT 
-        EBVP_TOP_NODE,
-        EBVP_TOP_NODE_2,
-        EBVP_TOP_NODE_3,
-        REPORTS_TO_3 AS VP,
-        COUNT(*) AS OPEN_REQS_AFTER_Q2
-    FROM GLOBAL_REQUISITIONS
-    WHERE ACTUAL_START_DATE >= '2025-07-01'
-      AND EMPLOYEE_GROUP IN ('A-Regular Salaried', 'B-Regular Hourly')
-      AND STATUS IN ('Future Hire', 'Pending Approval', 'Opened', 'On Hold')
-    GROUP BY EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3, REPORTS_TO_3
-)
-
-SELECT 
-    w.EBVP_TOP_NODE,
-    w.EBVP_TOP_NODE_2,
-    w.EBVP_TOP_NODE_3,
-    w.VP,
-    w.Q2_TO_DATE_HC,
-    COALESCE(h.HIRED_BY_Q2, 0) AS HIRED_BY_Q2,
-    COALESCE(o.OPEN_REQS_AFTER_Q2, 0) AS OPEN_REQS_AFTER_Q2
-FROM workforce_cte w
-LEFT JOIN hired_by_q2_cte h
-    ON w.EBVP_TOP_NODE = h.EBVP_TOP_NODE
-    AND w.EBVP_TOP_NODE_2 = h.EBVP_TOP_NODE_2
-    AND w.EBVP_TOP_NODE_3 = h.EBVP_TOP_NODE_3
-    AND w.VP = h.VP
-LEFT JOIN open_reqs_after_q2_cte o
-    ON w.EBVP_TOP_NODE = o.EBVP_TOP_NODE
-    AND w.EBVP_TOP_NODE_2 = o.EBVP_TOP_NODE_2
-    AND w.EBVP_TOP_NODE_3 = o.EBVP_TOP_NODE_3
-    AND w.VP = o.VP
-ORDER BY w.EBVP_TOP_NODE, w.EBVP_TOP_NODE_2, w.EBVP_TOP_NODE_3, w.VP;
+const result = await pbaTargetModel.aggregate(pipeline);
