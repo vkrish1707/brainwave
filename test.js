@@ -1,31 +1,16 @@
-const pipeline = [
-  {
-    $match: {
-      submit_period: "2025 Q2",
-      cost_element_name: "HC_reg"
-    }
-  },
-  {
-    $group: {
-      _id: {
-        ebvp_top_node: "$cost_center_level_4_id",
-        ebvp_top_node_2: "$cost_center_level_5_id",
-        ebvp_top_node_3: "$cost_center_level_6_id",
-        vp: "$reports_to_3"
-      },
-      total_target: { $sum: "$target" }
-    }
-  },
-  {
-    $project: {
-      _id: 0,
-      ebvp_top_node: "$_id.ebvp_top_node",
-      ebvp_top_node_2: "$_id.ebvp_top_node_2",
-      ebvp_top_node_3: "$_id.ebvp_top_node_3",
-      vp: "$_id.vp",
-      target: "$total_target"
-    }
-  }
-];
+function mergeWithTarget(mainArray, targetArray) {
+  // Create a lookup map from the targetArray
+  const targetMap = new Map();
 
-const result = await pbaTargetModel.aggregate(pipeline);
+  targetArray.forEach(item => {
+    const key = `${item.EBVP_TOP_NODE}|${item.EBVP_TOP_NODE_2}|${item.EBVP_TOP_NODE_3}`;
+    targetMap.set(key, item.target);
+  });
+
+  // Merge into mainArray
+  return mainArray.map(obj => {
+    const key = `${obj.EBVP_TOP_NODE}|${obj.EBVP_TOP_NODE_2}|${obj.EBVP_TOP_NODE_3}`;
+    const target = targetMap.get(key) || 0;
+    return { ...obj, target };
+  });
+}
