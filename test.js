@@ -1,83 +1,93 @@
-const getColumnDefs = (ebvpField) => {
-  const baseCols = [
-    {
-      headerName: 'EBVP Node',
-      field: 'ebvpNode',
-      rowSpan: rowSpan,
-      cellRenderer: 'MergedCellRender',
-    },
-    {
-      headerName: 'Q2 To Date HC',
-      field: 'q2HC',
-      aggFunc: 'sum',
-      flex: 1,
-      cellStyle: { fontSize: '16px', textAlign: 'center' },
-    },
-    {
-      headerName: "Hired by Q2'25 Start Date",
-      field: 'hiredByQ2',
-      aggFunc: 'sum',
-      flex: 1,
-      cellStyle: { fontSize: '16px', textAlign: 'right' },
-    },
-    {
-      headerName: 'Q2 Target',
-      field: 'target',
-      aggFunc: 'sum',
-      flex: 1,
-      cellStyle: { fontSize: '16px', textAlign: 'right' },
-    },
-    {
-      headerName: 'Delta to Target',
-      valueGetter: (params) => {
-        const { target, q2HC } = params.data;
-        return target - q2HC;
-      },
-      flex: 1,
-      cellStyle: { fontSize: '16px', textAlign: 'right' },
-    },
-    {
-      headerName: 'Open Reqs After Q2',
-      field: 'openReqsAfterQ2',
-      aggFunc: 'sum',
-      flex: 1,
-      cellStyle: { fontSize: '16px', textAlign: 'right' },
+import React, { useState } from 'react';
+import EbvpHeader from './EbvpHeader';
+import AopAndOpenReqsReport from './AopAndOpenReqsReport';
+import OtherComponent from './OtherComponent'; // You can add more
+
+const tabComponents = [
+  { name: 'Open Reqs Report', component: AopAndOpenReqsReport },
+  { name: 'Other Chart', component: OtherComponent },
+  // Add more components here
+];
+
+function HrMetricsReportsPage() {
+  const [activeTab, setActiveTab] = useState(0);
+  const [aopAndOpenReqsData, setAopAndOpenReqsData] = useState([]);
+  const [ebvpFilter, setEbvpFilter] = useState({ ebvpField: '', ebvpValue: '' });
+
+  const handleEBVPChange = (dropDown, value) => {
+    if (dropDown === 'workWeek') {
+      fetchData(value);
+    } else {
+      setEbvpFilter({ ebvpField: dropDown, ebvpValue: value });
     }
-  ];
+  };
 
-  if (ebvpField === 'EBVP_TOP_NODE') {
-    return baseCols;
-  }
+  const ActiveComponent = tabComponents[activeTab].component;
 
-  // If grouping by EBVP_TOP_NODE_2 or deeper, show VP Name column
-  return [
-    {
-      headerName: 'VP Name',
-      field: 'vpName',
-      flex: 1,
-      cellStyle: { fontSize: '16px', textAlign: 'center' },
-    },
-    ...baseCols
-  ];
-};
+  return (
+    <div className="reports-container">
+      <EbvpHeader onEBVPChange={handleEBVPChange} />
 
-const detailCellRendererParams = {
-  detailGridOptions: {
-    columnDefs: getColumnDefs('VP'),  // Same structure but for vpDetails array
-    defaultColDef: {
-      flex: 1,
-      resizable: true,
-    },
-  },
-  getDetailRowData: (params) => {
-    params.successCallback(params.data.vpDetails || []);
-  }
-};
-const gridOptions = {
-  columnDefs: getColumnDefs(currentEbvpField),
-  rowData: rowData,
-  masterDetail: true,
-  detailCellRendererParams,
-  groupIncludeFooter: true,
-  animateRows: true,
-};
+      <div className="tabs">
+        {tabComponents.map((tab, index) => (
+          <button
+            key={tab.name}
+            className={`tab-btn ${activeTab === index ? 'active' : ''}`}
+            onClick={() => setActiveTab(index)}
+          >
+            {tab.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="carousel">
+        <ActiveComponent
+          data={aopAndOpenReqsData}
+          ebvpField={ebvpFilter.ebvpField}
+          ebvpValue={ebvpFilter.ebvpValue}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default HrMetricsReportsPage;
+.reports-container {
+  padding: 1rem;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.tab-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.tab-btn:hover {
+  background: #e2e6ea;
+}
+
+.carousel {
+  border: 1px solid #ccc;
+  padding: 12px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
