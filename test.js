@@ -1,21 +1,43 @@
-function mergeWithTargets(mainArray, targetArray) {
-  const targetMap = new Map();
+function mergeMainWithTargets(mainArray, targetArray) {
+  const groupMap = new Map();
 
-  // Build key and assign target only once
-  targetArray.forEach(item => {
-    const key = `${item.EBVP_TOP_NODE}~${item.EBVP_TOP_NODE_2}~${item.EBVP_TOP_NODE_3}`;
-    targetMap.set(key, item.target);
-  });
+  // Step 1: Aggregate VPs under their EBVP node group
+  for (const item of mainArray) {
+    const key = `${item.EBVP_TOP_NODE}|${item.EBVP_TOP_NODE_2}|${item.EBVP_TOP_NODE_3}`;
 
-  const seenKeys = new Set();
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        EBVP_TOP_NODE: item.EBVP_TOP_NODE,
+        EBVP_TOP_NODE_2: item.EBVP_TOP_NODE_2,
+        EBVP_TOP_NODE_3: item.EBVP_TOP_NODE_3,
+        q2HC: 0,
+        hiredByQ2: 0,
+        openReqsAfterQ2: 0,
+        vpDetails: [],
+      });
+    }
 
-  return mainArray.map(obj => {
-    const key = `${obj.EBVP_TOP_NODE}~${obj.EBVP_TOP_NODE_2}~${obj.EBVP_TOP_NODE_3}`;
-    
-    // Only assign target once per unique EBVP group
-    const target = !seenKeys.has(key) ? (targetMap.get(key) || 0) : undefined;
+    const group = groupMap.get(key);
+    group.q2HC += Number(item.Q2_TO_DATE_HC || 0);
+    group.hiredByQ2 += Number(item.HIRED_BY_Q2 || 0);
+    group.openReqsAfterQ2 += Number(item.OPEN_REQS_AFTER_Q2 || 0);
 
-    seenKeys.add(key);
-    return { ...obj, target };
-  });
+    group.vpDetails.push({
+      vpName: item.VP,
+      q2HC: Number(item.Q2_TO_DATE_HC || 0),
+      hiredByQ2: Number(item.HIRED_BY_Q2 || 0),
+      openReqsAfterQ2: Number(item.OPEN_REQS_AFTER_Q2 || 0),
+    });
+  }
+
+  // Step 2: Add targets to each grouped node
+  for (const target of targetArray) {
+    const key = `${target.EBVP_TOP_NODE}|${target.EBVP_TOP_NODE_2}|${target.EBVP_TOP_NODE_3}`;
+    const group = groupMap.get(key);
+    if (group) {
+      group.target = Number(target.target || 0);
+    }
+  }
+
+  return Array.from(groupMap.values());
 }
