@@ -1,34 +1,20 @@
-const transformForRowSpan = (data) => {
-  const nameMap = {};
-  const result = [];
+function getMondayFromWorkWeek(workWeekStr) {
+  const match = workWeekStr.match(/ww(\d{2})(\d{2})/i);
+  if (!match) return null;
 
-  data.forEach((row) => {
-    nameMap[row.ebvpNode] = (nameMap[row.ebvpNode] || 0) + 1;
-  });
+  const week = parseInt(match[1], 10);
+  const year = 2000 + parseInt(match[2], 10); // e.g., 25 -> 2025
 
-  const countMap = {};
+  // Set date to the first day of the year
+  const firstJan = new Date(year, 0, 1);
+  const dayOfWeek = firstJan.getDay(); // 0 (Sun) to 6 (Sat)
+  const dayOffset = (dayOfWeek <= 4 ? dayOfWeek - 1 : dayOfWeek - 8); // Shift to Monday
+  const firstMonday = new Date(firstJan);
+  firstMonday.setDate(firstJan.getDate() - dayOffset);
 
-  data.forEach((row) => {
-    countMap[row.ebvpNode] = (countMap[row.ebvpNode] || 0) + 1;
+  // Add weeks
+  const targetMonday = new Date(firstMonday);
+  targetMonday.setDate(firstMonday.getDate() + (week - 1) * 7);
 
-    if (nameMap[row.ebvpNode] > 0) {
-      const isLast = countMap[row.ebvpNode] === nameMap[row.ebvpNode];
-      result.push({
-        ...row,
-        rowspan: nameMap[row.ebvpNode],
-        isLastRowInGroup: isLast, // Add this flag
-      });
-      nameMap[row.ebvpNode] = 0;
-    } else {
-      const isLast = countMap[row.ebvpNode] === nameMap[row.ebvpNode];
-      result.push({
-        ...row,
-        ebvpNode: '',
-        rowspan: 1,
-        isLastRowInGroup: isLast,
-      });
-    }
-  });
-
-  return result;
-};
+  return targetMonday.toISOString().split('T')[0]; // Return YYYY-MM-DD
+}
