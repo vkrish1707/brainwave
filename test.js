@@ -1,35 +1,20 @@
-function calculateTargetTotalsByNode(targetArray) {
-  const targetTotals = new Map();
-
-  for (const item of targetArray) {
-    const key = item.EBVP_TOP_NODE;
-
-    const prev = targetTotals.get(key) || 0;
-    const add = Number(item.target || 0);
-
-    targetTotals.set(key, prev + add);
-  }
-
-  return targetTotals;
-}
-
 function mergeMainWithTargets(mainArray, targetArray) {
   const groupMap = new Map();
 
-  // Step 1: Group & aggregate from main array
+  // Step 1: Group main data
   for (const item of mainArray) {
-    const key = `${item.EBVP_TOP_NODE}||${item.EBVP_TOP_NODE_2}||${item.EBVP_TOP_NODE_3}`;
-
+    const key = `${item.EBVP_TOP_NODE}||${item.EBVP_TOP_NODE_2}`;
+    
     if (!groupMap.has(key)) {
       groupMap.set(key, {
         EBVP_TOP_NODE: item.EBVP_TOP_NODE,
         EBVP_TOP_NODE_2: item.EBVP_TOP_NODE_2,
-        EBVP_TOP_NODE_3: item.EBVP_TOP_NODE_3,
+        EBVP_TOP_NODE_3: item.EBVP_TOP_NODE_3 || null,
         q2HC: 0,
         hiredByQ2: 0,
         openReqsAfterQ2: 0,
-        vpDetails: [],
         target: 0,
+        vpDetails: [],
       });
     }
 
@@ -48,41 +33,14 @@ function mergeMainWithTargets(mainArray, targetArray) {
     }
   }
 
-  // Step 2: Merge targets using 3-node key (fallback to 2-node key if 3rd is missing)
+  // Step 2: Apply targets — using fallback on 2-node match
   for (const target of targetArray) {
-    const fullKey = `${target.EBVP_TOP_NODE}||${target.EBVP_TOP_NODE_2}||${target.EBVP_TOP_NODE_3}`;
-    const partialKey = `${target.EBVP_TOP_NODE}||${target.EBVP_TOP_NODE_2}||null`;
-
-    const group = groupMap.get(fullKey) || groupMap.get(partialKey);
+    const fullKey = `${target.EBVP_TOP_NODE}||${target.EBVP_TOP_NODE_2}`;
+    const group = groupMap.get(fullKey);
     if (group) {
-      group.target = Number(target.target || 0);
+      group.target += Number(target.target || 0);
     }
   }
 
   return Array.from(groupMap.values());
 }
-function validateTargetTotals(groupedArray, originalTargetTotals) {
-  const afterTotals = new Map();
-
-  for (const item of groupedArray) {
-    const key = item.EBVP_TOP_NODE;
-    const prev = afterTotals.get(key) || 0;
-    const current = Number(item.target || 0);
-
-    afterTotals.set(key, prev + current);
-  }
-
-  for (const [key, expected] of originalTargetTotals.entries()) {
-    const actual = afterTotals.get(key) || 0;
-    if (expected !== actual) {
-      console.warn(`❌ Mismatch in target for ${key} — Expected: ${expected}, Found: ${actual}`);
-    } else {
-      console.log(`✅ Target match for ${key}: ${actual}`);
-    }
-  }
-}
-const targetTotals = calculateTargetTotalsByNode(targetArray);
-const merged = mergeMainWithTargets(mainArray, targetArray);
-validateTargetTotals(merged, targetTotals);
-
-
