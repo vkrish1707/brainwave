@@ -1,17 +1,55 @@
-SELECT
-  w.EBVP_TOP_NODE,
-  w.EBVP_TOP_NODE_2,
-  w.EBVP_TOP_NODE_3,
-  w.Q2_TO_DATE_HC,
-  COALESCE(h.HIRED_BY_Q2, 0) AS HIRED_BY_Q2,
-  COALESCE(o.OPEN_REQS_AFTER_Q2, 0) AS OPEN_REQS_AFTER_Q2
-FROM workforce_cte AS w
-LEFT JOIN hired_by_q2_cte AS h
-  ON w.EBVP_TOP_NODE = h.EBVP_TOP_NODE
-  AND w.EBVP_TOP_NODE_2 = h.EBVP_TOP_NODE_2
-  AND w.EBVP_TOP_NODE_3 = h.EBVP_TOP_NODE_3
-LEFT JOIN open_reqs_after_q2_cte AS o
-  ON w.EBVP_TOP_NODE = o.EBVP_TOP_NODE
-  AND w.EBVP_TOP_NODE_2 = o.EBVP_TOP_NODE_2
-  AND w.EBVP_TOP_NODE_3 = o.EBVP_TOP_NODE_3
-ORDER BY w.EBVP_TOP_NODE, w.EBVP_TOP_NODE_2, w.EBVP_TOP_NODE_3;
+function mergeMetrics(q2HCArray, hiredArray, openReqsArray) {
+  const mergedMap = new Map();
+
+  const buildKey = (item) =>
+    `${item.EBVP_TOP_NODE}|${item.EBVP_TOP_NODE_2}|${item.EBVP_TOP_NODE_3 || ''}`;
+
+  // Step 1: Insert Q2 HC
+  for (const item of q2HCArray) {
+    const key = buildKey(item);
+    mergedMap.set(key, {
+      EBVP_TOP_NODE: item.EBVP_TOP_NODE,
+      EBVP_TOP_NODE_2: item.EBVP_TOP_NODE_2,
+      EBVP_TOP_NODE_3: item.EBVP_TOP_NODE_3,
+      q2HC: item.q2HC || 0,
+      hiredByQ2: 0,
+      openReqsAfterQ2: 0,
+    });
+  }
+
+  // Step 2: Merge Hired
+  for (const item of hiredArray) {
+    const key = buildKey(item);
+    if (!mergedMap.has(key)) {
+      mergedMap.set(key, {
+        EBVP_TOP_NODE: item.EBVP_TOP_NODE,
+        EBVP_TOP_NODE_2: item.EBVP_TOP_NODE_2,
+        EBVP_TOP_NODE_3: item.EBVP_TOP_NODE_3,
+        q2HC: 0,
+        hiredByQ2: item.hiredByQ2 || 0,
+        openReqsAfterQ2: 0,
+      });
+    } else {
+      mergedMap.get(key).hiredByQ2 = item.hiredByQ2 || 0;
+    }
+  }
+
+  // Step 3: Merge Open Reqs
+  for (const item of openReqsArray) {
+    const key = buildKey(item);
+    if (!mergedMap.has(key)) {
+      mergedMap.set(key, {
+        EBVP_TOP_NODE: item.EBVP_TOP_NODE,
+        EBVP_TOP_NODE_2: item.EBVP_TOP_NODE_2,
+        EBVP_TOP_NODE_3: item.EBVP_TOP_NODE_3,
+        q2HC: 0,
+        hiredByQ2: 0,
+        openReqsAfterQ2: item.openReqsAfterQ2 || 0,
+      });
+    } else {
+      mergedMap.get(key).openReqsAfterQ2 = item.openReqsAfterQ2 || 0;
+    }
+  }
+
+  return Array.from(mergedMap.values());
+}
