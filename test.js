@@ -1,20 +1,13 @@
-SELECT
-  EBVP_TOP_NODE,
-  EBVP_TOP_NODE_2,
-  EBVP_TOP_NODE_3,
-  SUM(
-    CASE 
-      WHEN STATUS IN ('Pending', 'Future Hire') 
-           AND ACTUAL_START_DATE BETWEEN '2025-04-01' AND '2025-06-30'
-      THEN 1 ELSE 0 
-    END
-  ) +
-  SUM(
-    CASE 
-      WHEN STATUS = 'Closed' 
-           AND ACTUAL_START_DATE = '2025-06-30'
-      THEN 1 ELSE 0 
-    END
-  ) AS HIRED_Q2
-FROM global_hires
-GROUP BY EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3;
+const year = '25';
+const fullWeeks = Array.from({ length: 52 }, (_, i) => `WW${String(i + 1).padStart(2, '0')}${year}`);
+const weekMap = new Map(reportData.map(item => [item.week, item]));
+
+const paddedData = fullWeeks.map(week => {
+  return weekMap.get(week) || {
+    week,
+    hc: null,
+    offer: null,
+    attrition: null,
+    ytdAttrition: null,
+  };
+});
