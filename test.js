@@ -8,37 +8,52 @@ function mergeEBVPArrays(primaryArray, primaryKey, additionalSources = []) {
   const sumColumn = (arr, col) =>
     arr.reduce((acc, obj) => acc + getSafeValue(obj, col), 0);
 
-  // 🔹 Before Merge Totals
-  console.log("🔹 Before Merge Totals:");
+  const primaryMap = new Map();
+  for (const obj of primaryArray) {
+    primaryMap.set(getKey(obj), { ...obj });
+  }
+
+  // Track unmatched keys
+  const unmatchedBySource = {};
+
+  for (const { array, valueKey } of additionalSources) {
+    unmatchedBySource[valueKey] = [];
+
+    for (const obj of array) {
+      const key = getKey(obj);
+      const value = getSafeValue(obj, valueKey);
+
+      if (primaryMap.has(key)) {
+        primaryMap.get(key)[valueKey] = value;
+      } else {
+        unmatchedBySource[valueKey].push({ key, value });
+      }
+    }
+  }
+
+  // Logging counts before and after
+  console.log(`🔹 Before Merge Totals:`);
   console.log(`   - ${primaryKey}:`, sumColumn(primaryArray, primaryKey));
   for (const { array, valueKey } of additionalSources) {
     console.log(`   - ${valueKey}:`, sumColumn(array, valueKey));
   }
 
-  // 🔁 Build lookup maps for each additional source
-  const sourceMaps = additionalSources.map(({ array }) =>
-    Object.fromEntries(array.map(obj => [getKey(obj), obj]))
-  );
+  const merged = Array.from(primaryMap.values());
 
-  // 🔄 Merge logic
-  const merged = primaryArray.map(item => {
-    const key = getKey(item);
-    const result = { ...item };
-
-    for (let i = 0; i < additionalSources.length; i++) {
-      const { valueKey } = additionalSources[i];
-      const match = sourceMaps[i][key];
-      result[valueKey] = getSafeValue(match, valueKey);
-    }
-
-    return result;
-  });
-
-  // 🔸 After Merge Totals
-  console.log("🔸 After Merge Totals:");
+  console.log(`🔸 After Merge Totals:`);
   console.log(`   - ${primaryKey}:`, sumColumn(merged, primaryKey));
   for (const { valueKey } of additionalSources) {
     console.log(`   - ${valueKey}:`, sumColumn(merged, valueKey));
+  }
+
+  // Log unmatched items
+  for (const [key, items] of Object.entries(unmatchedBySource)) {
+    if (items.length) {
+      console.warn(`⚠️ Items in "${key}" not found in primaryArray:`);
+      items.forEach(({ key: itemKey, value }) =>
+        console.warn(`   - ${itemKey}: ${value}`)
+      );
+    }
   }
 
   return merged;
