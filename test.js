@@ -1,39 +1,18 @@
 function handleChartData(data, ebvpField, ebvpValue) {
   if (!Array.isArray(data)) return [];
 
-  // Step 1: Optional filter by EBVP level
+  // Step 1: Optional EBVP filter
   const filteredData = ebvpField && ebvpValue
     ? data.filter(item => item[ebvpField] === ebvpValue)
     : data;
 
-  // Step 2: Group by EBVP + WEEK_NUM to preserve uniqueness
-  const groupMap = new Map();
-  const getKey = (item) => 
-    `${item.EBVP_TOP_NODE}|${item.EBVP_TOP_NODE_2}|${item.EBVP_TOP_NODE_3}|${item.WEEK_NUM}`;
+  // Step 2: Aggregate by WEEK_NUM
+  const weeklyMap = new Map();
 
   for (const item of filteredData) {
-    const key = getKey(item);
-    if (!groupMap.has(key)) {
-      groupMap.set(key, {
-        week: item.WEEK_NUM,
-        hc: 0,
-        offer: 0,
-        attrition: 0
-      });
-    }
-
-    const group = groupMap.get(key);
-    group.hc += Number(item.HC || 0);
-    group.offer += Number(item.OFFERS || 0);
-    group.attrition += Number(item.TERMINATIONS || 0);
-  }
-
-  // Step 3: Collapse all grouped keys to weekly totals
-  const weekTotals = new Map();
-  for (const group of groupMap.values()) {
-    const week = group.week;
-    if (!weekTotals.has(week)) {
-      weekTotals.set(week, {
+    const week = item.WEEK_NUM;
+    if (!weeklyMap.has(week)) {
+      weeklyMap.set(week, {
         week,
         hc: 0,
         offer: 0,
@@ -42,22 +21,22 @@ function handleChartData(data, ebvpField, ebvpValue) {
       });
     }
 
-    const weekData = weekTotals.get(week);
-    weekData.hc += group.hc;
-    weekData.offer += group.offer;
-    weekData.attrition += group.attrition;
+    const weekData = weeklyMap.get(week);
+    weekData.hc += Number(item.HC || 0);
+    weekData.offer += Number(item.OFFERS || 0);
+    weekData.attrition += Number(item.TERMINATIONS || 0);
   }
 
-  // Step 4: Sort and calculate YTD attrition
-  const sortedWeeks = Array.from(weekTotals.values()).sort((a, b) =>
+  // Step 3: Sort and calculate YTD Attrition
+  const sorted = Array.from(weeklyMap.values()).sort((a, b) =>
     a.week.localeCompare(b.week)
   );
 
-  let cumulativeAttrition = 0;
-  for (const row of sortedWeeks) {
-    cumulativeAttrition += row.attrition;
-    row.ytdAttrition = cumulativeAttrition;
+  let totalAttrition = 0;
+  for (const row of sorted) {
+    totalAttrition += row.attrition;
+    row.ytdAttrition = totalAttrition;
   }
 
-  return sortedWeeks;
+  return sorted;
 }
