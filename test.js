@@ -1,50 +1,56 @@
-function mergeEBVPArrays(primaryArray, secondaryArray, tertiaryArray) {
-    const getKey = (obj, level = 3) => {
-        return level === 3
+function mergeEBVPArrays(primaryArray, additionalSources) {
+    const getKey = (obj, level = 3) =>
+        level === 3
             ? `${obj.EBVP_TOP_NODE}||${obj.EBVP_TOP_NODE_2}||${obj.EBVP_TOP_NODE_3}`
             : `${obj.EBVP_TOP_NODE}||${obj.EBVP_TOP_NODE_2}`;
-    };
 
-    const getSafeValue = (obj, key) => {
-        return obj && obj[key] != null ? Number(obj[key]) : 0;
-    };
+    const getSafeValue = (obj, key) => obj && obj[key] != null ? Number(obj[key]) : 0;
 
     const sumColumn = (arr, col) =>
-        arr.reduce((acc, obj) => acc + (getSafeValue(obj, col)), 0);
+        arr.reduce((acc, obj) => acc + getSafeValue(obj, col), 0);
 
-    const logSums = () => {
-        console.log("🔹 Before Merge Totals:");
-        console.log(" - HIRED_Q2:", sumColumn(primaryArray, 'HIRED_Q2'));
-        console.log(" - OPEN_REQ:", sumColumn(secondaryArray, 'OPEN_REQ'));
-        console.log(" - TARGET:", sumColumn(tertiaryArray, 'TARGET'));
-    };
+    console.log("🔹 Before Merge Totals:");
+    console.log(" - HIRED_Q2:", sumColumn(primaryArray, 'HIRED_Q2'));
 
-    logSums();
+    for (const { array, valueKey } of additionalSources) {
+        console.log(` - ${valueKey}:`, sumColumn(array, valueKey));
+    }
 
-    const secMap3 = Object.fromEntries(secondaryArray.map(obj => [getKey(obj), obj]));
-    const terMap3 = Object.fromEntries(tertiaryArray.map(obj => [getKey(obj), obj]));
-
-    const secMap2 = Object.fromEntries(secondaryArray.map(obj => [getKey(obj, 2), obj]));
-    const terMap2 = Object.fromEntries(tertiaryArray.map(obj => [getKey(obj, 2), obj]));
+    // Build maps for quick access
+    const sourceMaps = additionalSources.map(({ array, valueKey }) => ({
+        valueKey,
+        map3: Object.fromEntries(array.map(obj => [getKey(obj), obj])),
+        map2: Object.fromEntries(array.map(obj => [getKey(obj, 2), obj]))
+    }));
 
     const merged = primaryArray.map(item => {
         const key3 = getKey(item);
         const key2 = getKey(item, 2);
 
-        const sec = secMap3[key3] || secMap2[key2];
-        const ter = terMap3[key3] || terMap2[key2];
+        const result = { ...item };
 
-        return {
-            ...item,
-            OPEN_REQ: getSafeValue(sec, 'OPEN_REQ'),
-            TARGET: getSafeValue(ter, 'TARGET')
-        };
+        for (const { valueKey, map3, map2 } of sourceMaps) {
+            const match = map3[key3] || map2[key2];
+            result[valueKey] = getSafeValue(match, valueKey);
+        }
+
+        return result;
     });
 
     console.log("🔹 After Merge Totals:");
     console.log(" - HIRED_Q2:", sumColumn(merged, 'HIRED_Q2'));
-    console.log(" - OPEN_REQ:", sumColumn(merged, 'OPEN_REQ'));
-    console.log(" - TARGET:", sumColumn(merged, 'TARGET'));
+
+    for (const { valueKey } of additionalSources) {
+        console.log(` - ${valueKey}:`, sumColumn(merged, valueKey));
+    }
 
     return merged;
 }
+
+const mergedArray = mergeEBVPArrays(primaryArray, [
+    { array: secondaryArray, valueKey: 'OPEN_REQ' },
+    { array: tertiaryArray, valueKey: 'TARGET' },
+    { array: fourthArray, valueKey: 'ACTUALS' }
+]);
+
+
