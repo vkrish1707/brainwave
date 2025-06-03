@@ -1,66 +1,55 @@
-function mergeEBVPArrays(primaryArray, primaryKey, additionalSources = []) {
-  const getKey = (obj) =>
-    `${obj.EBVP_TOP_NODE}|${obj.EBVP_TOP_NODE_2}|${obj.EBVP_TOP_NODE_3 ?? ''}`;
-
-  const getSafeValue = (obj, key) =>
-    obj && obj[key] != null ? Number(obj[key]) : 0;
-
-  const sumColumn = (arr, col) =>
-    arr.reduce((acc, obj) => acc + getSafeValue(obj, col), 0);
-
-  const primaryMap = new Map();
-  for (const obj of primaryArray) {
-    primaryMap.set(getKey(obj), { ...obj });
-  }
-
-  const unmatchedBySource = {};
-  for (const { array, valueKey } of additionalSources) {
-    unmatchedBySource[valueKey] = [];
-
-    for (const obj of array) {
-      const key = getKey(obj);
-      const value = getSafeValue(obj, valueKey);
-
-      if (primaryMap.has(key)) {
-        primaryMap.get(key)[valueKey] = value;
-      } else {
-        unmatchedBySource[valueKey].push({ key, value });
-        primaryMap.set(key, {
-          EBVP_TOP_NODE: obj.EBVP_TOP_NODE,
-          EBVP_TOP_NODE_2: obj.EBVP_TOP_NODE_2,
-          EBVP_TOP_NODE_3: obj.EBVP_TOP_NODE_3,
-          [valueKey]: value,
-          is_not_found: true
-        });
-      }
-    }
-  }
-
-  // Before totals
-  console.log(`🔹 Before Merge Totals:`);
-  console.log(`   - ${primaryKey}:`, sumColumn(primaryArray, primaryKey));
-  for (const { array, valueKey } of additionalSources) {
-    console.log(`   - ${valueKey}:`, sumColumn(array, valueKey));
-  }
-
-  const merged = Array.from(primaryMap.values());
-
-  // After totals
-  console.log(`🔸 After Merge Totals:`);
-  console.log(`   - ${primaryKey}:`, sumColumn(merged, primaryKey));
-  for (const { valueKey } of additionalSources) {
-    console.log(`   - ${valueKey}:`, sumColumn(merged, valueKey));
-  }
-
-  // Log missing keys
-  for (const [key, items] of Object.entries(unmatchedBySource)) {
-    if (items.length) {
-      console.warn(`⚠️ Items in "${key}" not found in primaryArray:`);
-      for (const item of items) {
-        console.warn(`   - ${item.key}: ${item.value}`);
-      }
-    }
-  }
-
-  return merged;
-}
+WITH workforce_cte AS (
+    SELECT 
+        WEEK_NUM,
+        COUNT(*) AS hc
+    FROM global_workforce
+    WHERE RIGHT(WEEK_NUM, 2) = '25'
+    GROUP BY WEEK_NUM
+),
+offers_cte AS (
+    SELECT 
+        WEEK_NUM,
+        COUNT(*) AS offer
+    FROM (
+        SELECT WEEK_NUM FROM global_hires
+        WHERE RIGHT(WEEK_NUM, 2) = '25'
+        UNION ALL
+        SELECT WEEK_NUM FROM global_hire_transfers
+        WHERE RIGHT(WEEK_NUM, 2) = '25'
+    ) combined_offers
+    GROUP BY WEEK_NUM
+),
+attrition_cte AS (
+    SELECT 
+        WEEK_NUM,
+        COUNT(*) AS attrition
+    FROM global_terminations
+    WHERE RIGHT(WEEK_NUM, 2) = '25'
+    GROUP BY WEEK_NUM
+),
+all_weeks AS (
+    SELECT DISTINCT WEEK_NUM FROM (
+        SELECT WEEK_NUM FROM global_workforce
+        UNION
+        SELECT WEEK_NUM FROM global_hires
+        UNION
+        SELECT WEEK_NUM FROM global_hire_transfers
+        UNION
+        SELECT WEEK_NUM FROM global_terminations
+    ) allweeks
+    WHERE RIGHT(WEEK_NUM, 2) = '25'
+)
+SELECT 
+    w.WEEK_NUM AS week,
+    COALESCE(hc.hc, 0) AS hc,
+    COALESCE(o.offer, 0) AS offer,
+    COALESCE(a.attrition, 0) AS attrition,
+    SUM(COALESCE(a.attrition, 0)) OVER (
+        ORDER BY w.WEEK_NUM
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS ytdAttrition
+FROM all_weeks w
+LEFT JOIN workforce_cte hc ON w.WEEK_NUM = hc.WEEK_NUM
+LEFT JOIN offers_cte o ON w.WEEK_NUM = o.WEEK_NUM
+LEFT JOIN attrition_cte a ON w.WEEK_NUM = a.WEEK_NUM
+ORDER BY w.WEEK_NUM;
