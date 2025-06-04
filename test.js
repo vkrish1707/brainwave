@@ -7,6 +7,7 @@ function getWorkWeekDetails(workWeekStr) {
 
   const pad = (num) => String(num).padStart(2, '0');
   const format = (d) => d.toISOString().split('T')[0];
+  const getWorkWeekCode = (week, year) => `WW${pad(week)}${String(year).slice(-2)}`;
 
   function getMonday(week, year) {
     const jan1 = new Date(year, 0, 1);
@@ -23,8 +24,6 @@ function getWorkWeekDetails(workWeekStr) {
     friday.setDate(monday.getDate() + 4);
     return friday;
   }
-
-  const getWorkWeekCode = (week, year) => `WW${pad(week)}${String(year).slice(-2)}`;
 
   const quarterWeeks = {
     Q1: { start: 1, end: 13 },
@@ -61,23 +60,24 @@ function getWorkWeekDetails(workWeekStr) {
       const i = quarters.indexOf(currentQuarter);
       return i < 3 ? quarters[i + 1] : null;
     })(),
-    Q1: {
-      start: format(getMonday(quarterWeeks.Q1.start, year)),
-      end: format(getFriday(getMonday(quarterWeeks.Q1.end, year)))
-    },
-    Q2: {
-      start: format(getMonday(quarterWeeks.Q2.start, year)),
-      end: format(getFriday(getMonday(quarterWeeks.Q2.end, year)))
-    },
-    Q3: {
-      start: format(getMonday(quarterWeeks.Q3.start, year)),
-      end: format(getFriday(getMonday(quarterWeeks.Q3.end, year)))
-    },
-    Q4: {
-      start: format(getMonday(quarterWeeks.Q4.start, year)),
-      end: format(getFriday(getMonday(quarterWeeks.Q4.end, year)))
-    }
   };
+
+  // Add full quarter details including start/end weeks
+  for (const q of quarters) {
+    const { start, end } = quarterWeeks[q];
+    result[q] = {
+      start: format(getMonday(start, year)),
+      end: format(getFriday(getMonday(end, year))),
+      startWeek: getWorkWeekCode(start, year),
+      endWeek: getWorkWeekCode(end, year),
+    };
+  }
+
+  // Add PBA Target Category
+  if (currentQuarter) {
+    const quarterNumber = currentQuarter.replace('Q', '');
+    result.pbaTargetCategory = `0000000${quarterNumber}${String(year).slice(-2)}`;
+  }
 
   return result;
 }
