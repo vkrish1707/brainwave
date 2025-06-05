@@ -1,41 +1,30 @@
-<div className="tabs">
-  <div className="tab-buttons">
-    {tabComponents.map((tab, index) => (
-      <button
-        key={tab.name}
-        className={`tab-btn ${activeTab === index ? 'active' : ''}`}
-        onClick={() => setActiveTab(index)}
-      >
-        {tab.name}
-      </button>
-    ))}
-  </div>
+const empGroups = hcMap[headCountType] || []; // fallback to empty if not found
+const formattedGroups = empGroups.map(g => `'${g}'`).join(', '); // SQL-safe strings
 
-  <select className="hc-dropdown" value={selectedHeadcount} onChange={handleHeadcountChange}>
-    <option value="HC_REG">HC_REG</option>
-    <option value="HC_COO">HC_COO</option>
-    <option value="HC_OTHER">HC_OTHER</option>
-  </select>
-</div>
-
-.tabs {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.tab-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.hc-dropdown {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-weight: 500;
-  background: #fff;
-  cursor: pointer;
-}
+const hiredArrayQuery = `
+  SELECT
+    EBVP_TOP_NODE,
+    EBVP_TOP_NODE_2,
+    EBVP_TOP_NODE_3,
+    SUM(
+      CASE
+        WHEN (
+          ACTUAL_START_DATE <= '${workWeekDetails[workWeekDetails.currentQuarter].end}' AND
+          ACTUAL_START_DATE >= '${workWeekDetails[workWeekDetails.currentQuarter].start}' AND
+          EMPLOYEE_GROUP IN (${formattedGroups}) AND
+          WEEK_NUM = '${weekToFetch}' AND
+          STATUS IN ('Future Hire', 'On Hold', 'Opened', 'Pending Approval')
+        )
+        THEN 1
+        WHEN (
+          ACTUAL_START_DATE = '${workWeekDetails.nextWeekMonday}' AND
+          EMPLOYEE_GROUP IN (${formattedGroups})
+        )
+        THEN 1
+        ELSE 0
+      END
+    ) AS OFFERS
+  FROM GLOBAL_WORKFORCE
+  WHERE ${reqMatchConditionQuery}
+  GROUP BY EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3;
+`;
