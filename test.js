@@ -1,30 +1,17 @@
-const empGroups = hcMap[headCountType] || []; // fallback to empty if not found
-const formattedGroups = empGroups.map(g => `'${g}'`).join(', '); // SQL-safe strings
+const targetWeek = parseInt(weekToFetch.slice(2, 4));  // "19" from "WW1925"
+const targetYearSuffix = weekToFetch.slice(4);         // "25" from "WW1925"
 
-const hiredArrayQuery = `
+const weeklyHCQuery = `
   SELECT
     EBVP_TOP_NODE,
     EBVP_TOP_NODE_2,
     EBVP_TOP_NODE_3,
-    SUM(
-      CASE
-        WHEN (
-          ACTUAL_START_DATE <= '${workWeekDetails[workWeekDetails.currentQuarter].end}' AND
-          ACTUAL_START_DATE >= '${workWeekDetails[workWeekDetails.currentQuarter].start}' AND
-          EMPLOYEE_GROUP IN (${formattedGroups}) AND
-          WEEK_NUM = '${weekToFetch}' AND
-          STATUS IN ('Future Hire', 'On Hold', 'Opened', 'Pending Approval')
-        )
-        THEN 1
-        WHEN (
-          ACTUAL_START_DATE = '${workWeekDetails.nextWeekMonday}' AND
-          EMPLOYEE_GROUP IN (${formattedGroups})
-        )
-        THEN 1
-        ELSE 0
-      END
-    ) AS OFFERS
-  FROM GLOBAL_WORKFORCE
+    WEEK_NUM,
+    COUNT(*) AS HC
+  FROM global_workforce
   WHERE ${reqMatchConditionQuery}
-  GROUP BY EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3;
+    AND RIGHT(WEEK_NUM, 2) = '${targetYearSuffix}'
+    AND CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) <= ${targetWeek}
+    AND HC = '${headCountType}'
+  GROUP BY WEEK_NUM, EBVP_TOP_NODE, EBVP_TOP_NODE_2, EBVP_TOP_NODE_3
 `;
