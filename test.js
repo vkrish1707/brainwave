@@ -1,93 +1,48 @@
-const createAopSeries = (label, startWeek, endWeek, yValue, color = 'orange') => {
-  const startIndex = fullWeeks.indexOf(startWeek);
-  const endIndex = fullWeeks.indexOf(endWeek);
-  const data = fullWeeks
-    .slice(startIndex, endIndex + 1)
-    .map(week => ({ week, value: yValue }));
+const paddedData = fullWeeks.map(week => {
+  const isLast = week === workWeekDetails.currentWorkWeek;
+  const data = weekMap.get(week) || {
+    week,
+    hc: null,
+    offer: null,
+    attrition: null,
+    ytdAttrition: null,
+    ytdOffers: null,
+  };
+
+  // Assign aopTarget per quarter
+  let aopTarget = null;
+  if (week >= 'WW0125' && week <= 'WW1325') {
+    aopTarget = targetData.Q1_target;
+  } else if (week >= 'WW1425' && week <= 'WW2625') {
+    aopTarget = targetData.Q2_target;
+  } else if (week >= 'WW2725' && week <= 'WW3925') {
+    aopTarget = targetData.Q3_target;
+  } else if (week >= 'WW4025' && week <= 'WW5225') {
+    aopTarget = targetData.Q4_target;
+  }
 
   return {
-    type: 'line',
-    xKey: 'week',
-    yKey: 'value',
-    yName: label,
-    stroke: color,
-    strokeWidth: 2,
-    lineDash: [6, 4], // dashed line
-    data,
-    marker: { enabled: false },
-    yAxisKey: 'leftAxis',
-    tooltip: { enabled: false },
-    label: {
-      enabled: true,
-      fontWeight: 'bold',
-      formatter: ({ datum }) => (datum.week === endWeek ? `${label} ${yValue}` : ''),
-      placement: 'top',
-    }
+    ...data,
+    aopTarget,
+    showLabel: isLast,
   };
-};
+});
 
-const chartOptions = {
-  height: 800,
-  theme: 'ag-default-dark',
-  background: { fill: '#000000' },
-  title: {
-    text: `${ebvpValue} AOP Attainment Summary`,
-    fontSize: 18,
-    color: 'white',
-  },
-  zoom: {
-    anchorPointX: 'pointer',
-    anchorPointY: 'pointer',
-  },
-  dataSource: {
-    getData: () => {
-      return new Promise((resolve) => {
-        if (dataLoading) return;
-        resolve(paddedData);
-      });
-    },
-  },
-  series: [
-    {
-      type: 'line',
-      xKey: 'week',
-      yKey: 'hc',
-      yName: 'Head Count',
-      stroke: '#00BFFF',
-      marker: { enabled: true },
-      yAxisKey: 'leftAxis',
-      connectMissingData: true,
-      label: {
-        enabled: true,
-        fontWeight: 'bold',
-        formatter: ({ datum }) => datum.showLabel ? datum.hc?.toString() : '',
-        placement: 'right',
-      },
-    },
-    {
-      type: 'line',
-      xKey: 'week',
-      yKey: 'ytdOffers',
-      yName: 'Gross hiring',
-      stroke: 'green',
-      connectMissingData: true,
-      marker: {
-        fill: 'orange',
-        size: 10,
-        stroke: 'black',
-        strokeWidth: 3,
-      },
-      yAxisKey: 'rightAxis',
-      label: {
-        enabled: true,
-        fontWeight: 'bold',
-        formatter: ({ datum }) => datum.showLabel ? datum.ytdOffers?.toString() : '',
-        placement: 'top',
-      },
-    },
-    // Flat AOP lines added here:
-    createAopSeries('Q1 AOP', 'WW0125', 'WW1325', targetData.Q1_target),
-    createAopSeries('Q2 AOP', 'WW1425', 'WW2625', targetData.Q2_target),
-    createAopSeries('Q3 AOP', 'WW2725', 'WW3925', targetData.Q3_target),
-  ],
-};
+{
+  type: 'line',
+  xKey: 'week',
+  yKey: 'aopTarget',
+  yName: 'AOP Target',
+  stroke: 'orange',
+  strokeWidth: 2,
+  lineDash: [6, 4],
+  marker: { enabled: false },
+  connectMissingData: true,
+  yAxisKey: 'leftAxis',
+  label: {
+    enabled: true,
+    fontWeight: 'bold',
+    formatter: ({ datum }) => datum.showLabel ? `AOP ${datum.aopTarget}` : '',
+    placement: 'top',
+  }
+}
