@@ -1,14 +1,18 @@
-WITH latest_requisitions AS (
+WITH ranked_requisitions AS (
+  SELECT *,
+    ROW_NUMBER() OVER (
+      PARTITION BY REC_ID
+      ORDER BY CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) * 100 + CAST(RIGHT(WEEK_NUM, 2) AS INTEGER) DESC
+    ) AS rn
+  FROM global_requisitions
+  WHERE EBVP_TOP_NODE = 'E-TE'
+    AND status = 'Opened'
+    AND RIGHT(WEEK_NUM, 2) = '25'
+    AND CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) <= 19
+),
+latest_requisitions AS (
   SELECT *
-  FROM (
-    SELECT *,
-      ROW_NUMBER() OVER (PARTITION BY REC_ID ORDER BY last_updated DESC) AS rn
-    FROM global_requisitions
-    WHERE EBVP_TOP_NODE = 'E-TE'
-      AND RIGHT(WEEK_NUM, 2) = '25'
-      AND CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) <= 19
-      AND status = 'Opened'
-  ) ranked
+  FROM ranked_requisitions
   WHERE rn = 1
 )
 
