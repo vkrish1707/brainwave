@@ -11,17 +11,23 @@ const paddedData = fullWeeks.map(week => {
   };
 
   const weekNum = parseWeek(week);
-  let aopTarget = null;
+let aopTarget = null;
+let showTargetLabel = false;
 
-  if (weekNum >= 125 && weekNum <= 1325) {
-    aopTarget = targetData.Q1_target;
-  } else if (weekNum >= 1425 && weekNum <= 2625) {
-    aopTarget = targetData.Q2_target;
-  } else if (weekNum >= 2725 && weekNum <= 3925) {
-    aopTarget = targetData.Q3_target;
-  } else if (weekNum >= 4025 && weekNum <= 5225) {
-    aopTarget = targetData.Q4_target;
-  }
+const weekNum = parseWeek(week);
+if (weekNum >= 125 && weekNum <= 1325) {
+  aopTarget = targetData.Q1_target;
+  showTargetLabel = (weekNum === 125);
+} else if (weekNum >= 1425 && weekNum <= 2625) {
+  aopTarget = targetData.Q2_target;
+  showTargetLabel = (weekNum === 1425);
+} else if (weekNum >= 2725 && weekNum <= 3925) {
+  aopTarget = targetData.Q3_target;
+  showTargetLabel = (weekNum === 2725);
+} else if (weekNum >= 4025 && weekNum <= 5225) {
+  aopTarget = targetData.Q4_target;
+  showTargetLabel = (weekNum === 4025);
+}
 
   return {
     ...data,
