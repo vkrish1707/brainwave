@@ -1,3 +1,4 @@
+const parseWeek = (wwStr) => parseInt(wwStr.replace('WW', ''), 10);
 const paddedData = fullWeeks.map(week => {
   const isLast = week === workWeekDetails.currentWorkWeek;
   const data = weekMap.get(week) || {
@@ -9,15 +10,16 @@ const paddedData = fullWeeks.map(week => {
     ytdOffers: null,
   };
 
-  // Assign aopTarget per quarter
+  const weekNum = parseWeek(week);
   let aopTarget = null;
-  if (week >= 'WW0125' && week <= 'WW1325') {
+
+  if (weekNum >= 125 && weekNum <= 1325) {
     aopTarget = targetData.Q1_target;
-  } else if (week >= 'WW1425' && week <= 'WW2625') {
+  } else if (weekNum >= 1425 && weekNum <= 2625) {
     aopTarget = targetData.Q2_target;
-  } else if (week >= 'WW2725' && week <= 'WW3925') {
+  } else if (weekNum >= 2725 && weekNum <= 3925) {
     aopTarget = targetData.Q3_target;
-  } else if (week >= 'WW4025' && week <= 'WW5225') {
+  } else if (weekNum >= 4025 && weekNum <= 5225) {
     aopTarget = targetData.Q4_target;
   }
 
