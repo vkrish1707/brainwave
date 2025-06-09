@@ -1,29 +1,54 @@
-WITH ranked_requisitions AS (
-  SELECT *,
-    ROW_NUMBER() OVER (
-      PARTITION BY REC_ID
-      ORDER BY CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) * 100 + CAST(RIGHT(WEEK_NUM, 2) AS INTEGER) DESC
-    ) AS rn
-  FROM global_requisitions
-  WHERE EBVP_TOP_NODE = 'E-TE'
-    AND status = 'Opened'
-    AND RIGHT(WEEK_NUM, 2) = '25'
-    AND CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) <= 19
-),
-latest_requisitions AS (
-  SELECT *
-  FROM ranked_requisitions
-  WHERE rn = 1
-)
+const handleTableData = (data, ebvpField, ebvpValue) => {
+  if (!data?.length) {
+    setTableData([]);
+    return;
+  }
 
-SELECT
-  EBVP_TOP_NODE_2,
-  COUNT(CASE WHEN application_status = 'Offer Pending Approval' THEN 1 END) AS "Pending Approval",
-  COUNT(CASE WHEN application_status = 'Offer Extended' THEN 1 END) AS "Actively Recruiting",
-  COUNT(CASE WHEN application_status = 'Offer Approved' THEN 1 END) AS "Offers in Progress",
-  COUNT(CASE WHEN application_status IN ('Onboarding', '') THEN 1 END) AS "Onboarding",
-  COUNT(CASE WHEN application_status = 'Hired' THEN 1 END) AS "Closed Hired",
-  COUNT(*) AS "Grand Total"
-FROM latest_requisitions
-GROUP BY EBVP_TOP_NODE_2
-ORDER BY EBVP_TOP_NODE_2;
+  // Step 1: Filter by EBVP level if selected
+  const filteredData = ebvpField && ebvpValue
+    ? data.filter(item => item[ebvpField] === ebvpValue)
+    : data;
+
+  // Step 2: Define default grouping field
+  let groupByField = "EBVP_TOP_NODE";
+  if (ebvpField === "EBVP_TOP_NODE_2") groupByField = "EBVP_TOP_NODE_2";
+  else if (ebvpField === "EBVP_TOP_NODE_3") groupByField = "EBVP_TOP_NODE_3";
+
+  // Step 3: Aggregate status counts per EBVP node
+  const groupedMap = filteredData.reduce((acc, item) => {
+    const key = item[groupByField];
+    const status = item.APPLICATION_STATUS;
+
+    if (!key) return acc;
+
+    if (!acc[key]) {
+      acc[key] = {
+        node: key,
+        pendingApproval: 0,
+        activelyRecruiting: 0,
+        offersInProgress: 0,
+        onboarding: 0,
+        closedHired: 0,
+        grandTotal: 0
+      };
+    }
+
+    // Count logic
+    if (status === 'Offer Pending Approval') acc[key].pendingApproval += 1;
+    if (status === 'Offer Extended') acc[key].activelyRecruiting += 1;
+    if (status === 'Offer Approved') acc[key].offersInProgress += 1;
+    if (status === 'Onboarding' || status === '') acc[key].onboarding += 1;
+    if (status === 'Hired') acc[key].closedHired += 1;
+
+    acc[key].grandTotal += 1;
+
+    return acc;
+  }, {});
+
+  // Step 4: Convert to array and sort
+  const groupedArray = Object.values(groupedMap).sort(
+    (a, b) => b.grandTotal - a.grandTotal
+  );
+
+  setTableData(groupedArray);
+};
