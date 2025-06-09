@@ -1,3 +1,17 @@
+WITH latest_requisitions AS (
+  SELECT *
+  FROM (
+    SELECT *,
+      ROW_NUMBER() OVER (PARTITION BY REC_ID ORDER BY last_updated DESC) AS rn
+    FROM global_requisitions
+    WHERE EBVP_TOP_NODE = 'E-TE'
+      AND RIGHT(WEEK_NUM, 2) = '25'
+      AND CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) <= 19
+      AND status = 'Opened'
+  ) ranked
+  WHERE rn = 1
+)
+
 SELECT
   EBVP_TOP_NODE_2,
   COUNT(CASE WHEN application_status = 'Offer Pending Approval' THEN 1 END) AS "Pending Approval",
@@ -6,10 +20,6 @@ SELECT
   COUNT(CASE WHEN application_status IN ('Onboarding', '') THEN 1 END) AS "Onboarding",
   COUNT(CASE WHEN application_status = 'Hired' THEN 1 END) AS "Closed Hired",
   COUNT(*) AS "Grand Total"
-FROM global_requisitions
-WHERE EBVP_TOP_NODE = 'E-TE'
-  AND RIGHT(WEEK_NUM, 2) = '25'
-  AND CAST(SUBSTRING(WEEK_NUM, 3, 2) AS INTEGER) <= 19
-  AND status = 'Opened'
+FROM latest_requisitions
 GROUP BY EBVP_TOP_NODE_2
 ORDER BY EBVP_TOP_NODE_2;
