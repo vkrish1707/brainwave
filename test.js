@@ -1,23 +1,33 @@
-// From request
-const rawHeadCountType = req.query.headCountType || '';
+const [hcTypeError, setHcTypeError] = useState(false);
+const handleHcTypeChange = (e) => {
+  const hcType = e.target.value;
+  setSelectedHcType(hcType);
 
-// Step 1: Always get an array of head count types
-const headCountTypes = rawHeadCountType
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean); // removes any empty strings
+  if (hcType.length === 0) {
+    setHcTypeError(true); // show red underline
+  } else {
+    setHcTypeError(false); // clear error
+    fetchData(selectedWeek, hcType);
+  }
+};
 
-console.log("📌 Parsed headCountTypes:", headCountTypes);
-
-// Step 2: Map to employee group values from your hcMap
-const empGroups = headCountTypes.flatMap(hc => hcMap[hc] || []);
-
-console.log("📌 Resolved employee groups:", empGroups);
-
-// Step 3: Format them for SQL IN clause
-const formattedGroups = empGroups.map(g => `'${g}'`).join(', ');
-
-console.log("📌 Formatted groups for SQL:", formattedGroups);
-
-// 👉 Now use formattedGroups in your SQL:
-// WHERE EMPLOYEE_GROUP IN (${formattedGroups})
+<Select
+  value={selectedHcType}
+  multiple
+  error={hcTypeError}
+  onChange={handleHcTypeChange}
+  renderValue={(selected) => selected.join(', ')}
+  input={<OutlinedInput label="HC Type" />}
+>
+  {hcTypes.map((name) => (
+    <MenuItem key={name} value={name}>
+      <Checkbox checked={selectedHcType.includes(name)} />
+      <ListItemText primary={name} />
+    </MenuItem>
+  ))}
+</Select>
+{hcTypeError && (
+  <FormHelperText sx={{ color: 'red' }}>
+    At least one HC Type must be selected.
+  </FormHelperText>
+)}
