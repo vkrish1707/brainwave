@@ -308,3 +308,89 @@ describe('Blocklist Management Application', () => {
   margin: 8px 0 0;
   padding: 0;
 }
+************************main.jsx**********************************
+const BlocklistList = ({ blocklists }) => {
+  return (
+    <div className="blocklist-list">
+      {blocklists.map((b) => {
+        return (
+          <div className="blocklist-list__item" key={b.id}>
+            <div>
+              <div className="blocklist-list__name">{b.name}</div>
+              <div className="blocklist-list__ips">{b.ips}</div>
+            </div>
+            <button className="btn btn--danger blocklist-list__delete-btn">
+              Delete
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  );
+}
+
+const App = () => {
+  const [blockLists, setBlockLists] = React.useState([
+    {
+      id: 1,
+      name: "First Blocklist",
+      ips: ["1.1.1.1", "2.2.2.2", "3.3.3.3"]
+    }
+  ]);
+  
+  const handleAddBlockList = () => {
+    // Write your code here
+  };
+
+  const handleDeleteBlockList = () => {
+    // Write your code here
+  };
+
+  return (
+    <div className="content-container">
+      <h2>Add new ip blocklist</h2>
+      <form className="add-blocklist-form">
+        <div className="form-field">
+          <label className="form-field__label">Blocklist Name</label>
+          <input
+            id="name-input"
+            className="form-field__input"
+            placeholder="Blocklist Name..."
+            name="name"
+            type="text"
+          />
+        </div>
+        <div className="form-field">
+          <label className="form-field__label">Ips</label>
+          <textarea 
+            id="ips-input"
+            placeholder="2.2.2.2, 3.3.3.3, 4.2.2.2"
+            name="ips"
+            className="form-field__input"
+          />
+          <p id="ips-input-helpertext" className="form-field__helper-text">
+            Comma-separated list of ips to add to the blocklist.
+          </p>
+        </div>
+        
+        <div>
+          <button 
+            id="blocklist-submit" 
+            className="btn btn--primary"
+          >
+            Add blocklist
+          </button>
+        </div>
+      </form>
+
+      <h2>Your blocklists</h2>
+      <BlocklistList blocklists={blockLists} />
+    </div>
+  );
+};
+
+ReactDOM.render(
+  <App />,
+  document.getElementById('app')
+);
+
