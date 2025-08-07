@@ -179,3 +179,132 @@ describe('Blocklist Management Application', () => {
     browser.close();
   });
 });
+
+
+************************CSS*******************************
+  :root {
+    --color-main-base: #635DFF;
+    --color-main-darker: #564ED1;
+    --color-danger-base: #D03C38;
+    --color-danger-darker: #841E2A;
+    --color-text-primary: #1E212A;
+    --color-text-secondary: #65676E;
+    --color-neutral-light: #C9CACE;
+}
+
+.content-container {
+  margin: 20px;
+}
+
+.content-container h2 {
+    font-family: sans-serif;
+}
+
+.add-quote-form {
+    margin-bottom: 30px;
+}
+
+.blocklist-list .blocklist-list__item {
+    list-style: none;
+    font-family: sans-serif;
+    margin-bottom: 10px;
+    border: 1px solid rgb(230, 230, 230);
+    border-radius: 5px;
+    padding: 5px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.content-container .blocklist-list .blocklist-list__ips {
+  font-size: 14px;
+  font-style: italic;
+}
+
+.content-container .blocklist-list .blocklist-list__name {
+  font-size: 18px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.content-container .blocklist-list .blocklist-list__delete-btn {
+    font-size: 14px;
+    color: white;
+    border-radius: 5px;
+    padding: 5px 20px;
+    border: 1px solid var(--color-danger-base);
+    background-color: var(--color-danger-base);
+    margin-left: 10px;
+}
+
+.btn {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  border-radius: 5px;
+  padding: 5px 20px;
+  border: 1px solid var(--color-neutral-light);
+  background-color: var(--color-neutral-light);
+}
+
+.btn.btn--primary {
+  color: #fff;
+  border-color: var(--color-main-base);
+  background-color: var(--color-main-base);
+}
+
+.btn.btn--primary:hover {
+  border-color: var(--color-main-darker);
+  background-color: var(--color-main-darker);
+}
+
+.btn.btn--danger {
+  color: #fff;
+  border-color: var(--color-danger-base);
+  background-color: var(--color-danger-base);
+}
+
+.btn.btn--danger:hover {
+  border-color: var(--color-danger-darker);
+  background-color: var(--color-danger-darker);
+}
+
+.form-field {
+  margin-bottom: 16px;
+}
+
+.form-field .form-field__label {
+  display: block;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  margin-bottom: 8px;
+  font-family: sans-serif;
+  font-size: 14px;
+}
+
+.form-field .form-field__input {
+  width: 100%;
+  font-family: Inter, sans-serif;
+  border-radius: 5px;
+  border: 1px solid var(--color-neutral-light);
+  text-shadow: none;
+  background: transparent;
+  padding: 8px 16px;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--color-text-primary);
+  transition: box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,border-color 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,border-width 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+}
+
+.form-field .form-field__input:focus {
+  box-shadow: rgb(99 93 255 / 25%) 0px 0px 0px 0.25em;
+  border-color: var(--color-main-base);
+}
+
+.form-field .form-field__helper-text {
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 8px 0 0;
+  padding: 0;
+}
