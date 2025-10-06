@@ -1,100 +1,63 @@
-Perfect. Based on your direction, here’s how we’ll structure a robust, AI-friendly backend prompt for the BRP Page with snapshot management, JQL query saving, issue processing, and editable business rules.
-
-We will match the existing architecture of how you’re handling JIRA Snapshots, JQL management, and issue storage, and introduce new collections: brp_queries, brp_snapshots, brp_issues, and brp_rules.
+Great. Here’s the updated backend AI prompt logic that adds your latest requirement:
 
 ⸻
 
-🧠 Backend AI Prompt (Modular & Reusable BRP API with Snapshot, Query, Rules)
+🔁 AI Prompt: Backend API – Fetch BRP Issues by Query ID (Latest Snapshot)
 
-📌 This AI prompt will instruct the agent to:
-	•	Set up modular API endpoints
-	•	Mirror the JIRA snapshot saving approach
-	•	Build business logic processors (editable in DB)
-	•	Allow full CRUD access to queries, snapshots, issues, and logic rules
+Build an Express.js endpoint to return BRP issues based on a given queryId. The logic involves:
 
 ⸻
 
-💡 Prompt to AI Agent
-
-Build a modular backend (Node.js + Express + MongoDB) that manages a new section called BRP Page, based on how jira_snapshots, jira_issues, and jira_queries are currently handled in the system.
-
-🔧 Collections Required
-	1.	brp_queries
-	•	Fields: _id, name, jql, createdBy, createdAt, updatedAt
-	2.	brp_snapshots
-	•	Fields: _id, queryId, snapshotDate, issuesCount, savedAt, notes
-	3.	brp_issues
-	•	Fields: _id, snapshotId, jiraId, summary, priority, variant, functionalArea, impactedSubsystems, subsystemComplexity, affectedBlocks, jamaItem, referenceLink, featureArchitect, status, impactedIP, etc.
-	•	Also store computed fields:
-	•	porStatus
-	•	complexity
-	•	hasFW
-	•	hasSW
-	•	socImpact
-	•	gcImpact
-	4.	brp_rules
-	•	A config-driven business logic rule engine for calculated fields.
-	•	Example schema:
-
-{
-  "name": "HasFW",
-  "field": "impactedIP",
-  "matchAny": ["FW-CP", "FW-SDMA", "FW-VCN"],
-  "resultIfMatch": "Yes",
-  "resultIfNoMatch": "No"
-}
-
-
-
-📡 API Routes
-
-📌 Query Management
-	•	POST /api/brp/query → Save new JQL query
-	•	GET /api/brp/query → List all queries
-	•	GET /api/brp/query/:id → Get specific query
-	•	PUT /api/brp/query/:id → Update query
-	•	DELETE /api/brp/query/:id → Delete query
-
-🧠 Snapshot Capture
-	•	POST /api/brp/snapshot/:queryId → Trigger snapshot:
-	1.	Run the JQL
-	2.	Fetch issues from JIRA
-	3.	Save snapshot metadata
-	4.	Process each issue:
-	•	Save in brp_issues
-	•	Apply rules from brp_rules to calculate business fields
-
-📊 Issues Retrieval
-	•	GET /api/brp/issues?snapshotId=xyz → Return processed issues (with filters & pagination)
-
-⚙️ Rule Engine Management
-	•	GET /api/brp/rules → Get all rule definitions
-	•	POST /api/brp/rules → Add new rule
-	•	PUT /api/brp/rules/:id → Update rule
-	•	DELETE /api/brp/rules/:id → Remove rule
-
-🧪 Validation Notes
-	•	Validate JQL before saving.
-	•	Ensure issues are not duplicated per snapshot.
-	•	Make rules dynamic and stored in DB for future editing by admins.
-	•	Snapshot logic should use a utility similar to how existing jira_snapshot.service.js works.
+📦 Collections Involved
+	•	brp_queries – Metadata for saved JQL-like queries
+	•	brp_snapshots – Snapshot entries containing queryId, snapshotId, createdAt
+	•	brp_issues – All fetched issues tied to a snapshotId
 
 ⸻
 
-✅ Optional Enhancements
-
-If your architecture supports it:
-	•	Use a common snapshotEngine utility (jira, brp, etc.) to generalize logic.
-	•	Add N vs N-1 comparison logic using snapshot timestamps.
-	•	Add cron job support for scheduled BRP snapshots (like brp_cron.controller.js).
+📥 Input
+	•	queryId (from request param or query param): ID of the saved BRP query
+	•	Optional: view param (overall, variant, etc.)
 
 ⸻
 
-🏁 Next Steps
+🧠 Core Logic
+	1.	Find Latest Snapshot
+	•	From brp_snapshots, find the document with the matching queryId and the most recent createdAt.
+	•	Retrieve its snapshotId.
+	2.	Fetch Issues
+	•	From brp_issues, pull all issues where snapshotId matches the one found above.
+	3.	Apply Business Logic
+	•	For each issue, apply derived field logic using the helper functions in brpLogic.js:
+	•	Complexity
+	•	POR Status
+	•	Has FW
+	•	Has SW
+	•	SOC Impact
+	•	GC Impact
+	4.	View-based Formatting
+	•	Format the output depending on the view parameter:
+	•	overall, variant, subsystem, sw, fw, gc
+	•	Each view returns specific columns (defined in logic or a config file).
+	5.	Return Formatted Result
+	•	As JSON by default
+	•	If export=csv, return downloadable CSV stream
 
-Would you like me to:
-	•	✅ Generate MongoDB schema + example JSON documents for each collection?
-	•	✅ Write API endpoint skeletons in Express (routes, controllers, models)?
-	•	✅ Write sample rule engine utility to calculate fields like hasFW, porStatus, etc.?
+⸻
 
-Let me know which ones you want next, and I’ll generate that immediately.
+✅ Example Endpoint
+
+GET /api/brp/issues?queryId=abc123&view=overall
+
+
+⸻
+
+📝 Notes
+	•	Reuse existing snapshot/issue resolution logic from jira_snapshots and jira_issues.
+	•	Do not duplicate logic across views — use a view config file or formatter for columns.
+	•	Store all business logic in brpLogic.js as reusable, testable functions.
+	•	Make sure snapshot logic picks the latest by timestamp, not just ID.
+
+⸻
+
+Would you like a code scaffold for this now (including route + logic + utils)?
