@@ -1,65 +1,100 @@
-Perfect 👍 you’re at the right step now. Let’s go through this in two parts:
+Perfect. Based on your direction, here’s how we’ll structure a robust, AI-friendly backend prompt for the BRP Page with snapshot management, JQL query saving, issue processing, and editable business rules.
+
+We will match the existing architecture of how you’re handling JIRA Snapshots, JQL management, and issue storage, and introduce new collections: brp_queries, brp_snapshots, brp_issues, and brp_rules.
 
 ⸻
 
-🔧 Step 1: Okta Developer Console Setup
-	1.	Redirect URIs
-	•	In your Okta app settings, add the frontend callback URL.
-For example, if you’re running Next.js locally:
+🧠 Backend AI Prompt (Modular & Reusable BRP API with Snapshot, Query, Rules)
 
-http://localhost:3000/api/auth/callback
-
-
-	•	If you plan to host it later, add that domain as well (e.g., https://myapp.company.com/api/auth/callback).
-
-	2.	Assign Test Users
-	•	In Okta Developer Console → Directory → People → Add Person.
-	•	Create 2 users with email + password (and set them as “Active”).
-	•	Assign your app to these test users:
-	•	Go to Applications → Your App → Assignments → Assign → People → pick your test users.
-	3.	Collect App Credentials
-	•	From General → Client Credentials, note:
-	•	Client ID
-	•	Client Secret
-	•	Issuer URL (looks like https://dev-xxxxx.okta.com/oauth2/default)
-	4.	Enable Authorization Code Flow (with PKCE)
-	•	In your app settings, make sure “Authorization Code” with PKCE is enabled for sign-in.
-	•	This is the recommended flow for Next.js SPAs.
+📌 This AI prompt will instruct the agent to:
+	•	Set up modular API endpoints
+	•	Mirror the JIRA snapshot saving approach
+	•	Build business logic processors (editable in DB)
+	•	Allow full CRUD access to queries, snapshots, issues, and logic rules
 
 ⸻
 
-🖥️ Step 2: Frontend (Next.js) Integration
+💡 Prompt to AI Agent
 
-At a high level, what your frontend needs to do:
-	•	When the app loads, check if the user is authenticated.
-	•	If not → redirect to Okta login page.
-	•	On successful login → Okta redirects back to your callback URL with an auth code.
-	•	Your backend exchanges that code for tokens (ID token + access token).
-	•	Backend verifies tokens and stores the user in MongoDB.
-	•	User is now logged in and can call protected APIs.
+Build a modular backend (Node.js + Express + MongoDB) that manages a new section called BRP Page, based on how jira_snapshots, jira_issues, and jira_queries are currently handled in the system.
+
+🔧 Collections Required
+	1.	brp_queries
+	•	Fields: _id, name, jql, createdBy, createdAt, updatedAt
+	2.	brp_snapshots
+	•	Fields: _id, queryId, snapshotDate, issuesCount, savedAt, notes
+	3.	brp_issues
+	•	Fields: _id, snapshotId, jiraId, summary, priority, variant, functionalArea, impactedSubsystems, subsystemComplexity, affectedBlocks, jamaItem, referenceLink, featureArchitect, status, impactedIP, etc.
+	•	Also store computed fields:
+	•	porStatus
+	•	complexity
+	•	hasFW
+	•	hasSW
+	•	socImpact
+	•	gcImpact
+	4.	brp_rules
+	•	A config-driven business logic rule engine for calculated fields.
+	•	Example schema:
+
+{
+  "name": "HasFW",
+  "field": "impactedIP",
+  "matchAny": ["FW-CP", "FW-SDMA", "FW-VCN"],
+  "resultIfMatch": "Yes",
+  "resultIfNoMatch": "No"
+}
+
+
+
+📡 API Routes
+
+📌 Query Management
+	•	POST /api/brp/query → Save new JQL query
+	•	GET /api/brp/query → List all queries
+	•	GET /api/brp/query/:id → Get specific query
+	•	PUT /api/brp/query/:id → Update query
+	•	DELETE /api/brp/query/:id → Delete query
+
+🧠 Snapshot Capture
+	•	POST /api/brp/snapshot/:queryId → Trigger snapshot:
+	1.	Run the JQL
+	2.	Fetch issues from JIRA
+	3.	Save snapshot metadata
+	4.	Process each issue:
+	•	Save in brp_issues
+	•	Apply rules from brp_rules to calculate business fields
+
+📊 Issues Retrieval
+	•	GET /api/brp/issues?snapshotId=xyz → Return processed issues (with filters & pagination)
+
+⚙️ Rule Engine Management
+	•	GET /api/brp/rules → Get all rule definitions
+	•	POST /api/brp/rules → Add new rule
+	•	PUT /api/brp/rules/:id → Update rule
+	•	DELETE /api/brp/rules/:id → Remove rule
+
+🧪 Validation Notes
+	•	Validate JQL before saving.
+	•	Ensure issues are not duplicated per snapshot.
+	•	Make rules dynamic and stored in DB for future editing by admins.
+	•	Snapshot logic should use a utility similar to how existing jira_snapshot.service.js works.
 
 ⸻
 
-✅ AI Prompt for Frontend Implementation
+✅ Optional Enhancements
 
-Here’s a ready-to-use prompt you can give to your AI agent to implement the Next.js side:
-
-⸻
-
-Prompt for AI Agent:
-“Integrate Okta authentication into my existing Next.js frontend. Use the Authorization Code Flow with PKCE. Steps:
-	1.	Configure environment variables for NEXT_PUBLIC_OKTA_CLIENT_ID, NEXT_PUBLIC_OKTA_ISSUER, NEXT_PUBLIC_OKTA_REDIRECT_URI, and NEXT_PUBLIC_OKTA_SCOPES.
-	2.	On page load, check if the user is authenticated. If not, redirect them to the Okta sign-in page.
-	3.	Handle the callback at /api/auth/callback, exchange the authorization code for tokens by calling the backend, and store the session securely (cookie or httpOnly session).
-	4.	Once authenticated, fetch the user’s profile (id, email, name) and display it in the UI.
-	5.	If the user logs out, clear the session and redirect back to login.
-	6.	Ensure the frontend can only access protected routes after authentication.
-	7.	Style the login experience to match the existing dark theme of the app.”
+If your architecture supports it:
+	•	Use a common snapshotEngine utility (jira, brp, etc.) to generalize logic.
+	•	Add N vs N-1 comparison logic using snapshot timestamps.
+	•	Add cron job support for scheduled BRP snapshots (like brp_cron.controller.js).
 
 ⸻
 
-⚡Quick tip: You can use Okta React SDK or just plain next-auth with Okta as the provider (simplifies a lot).
+🏁 Next Steps
 
-⸻
+Would you like me to:
+	•	✅ Generate MongoDB schema + example JSON documents for each collection?
+	•	✅ Write API endpoint skeletons in Express (routes, controllers, models)?
+	•	✅ Write sample rule engine utility to calculate fields like hasFW, porStatus, etc.?
 
-Do you also want me to prepare the matching backend AI prompt for handling the Okta token exchange and user storage in MongoDB, so your AI agent can build both sides together?
+Let me know which ones you want next, and I’ll generate that immediately.
