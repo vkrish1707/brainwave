@@ -1,63 +1,92 @@
-Great. Here’s the updated backend AI prompt logic that adds your latest requirement:
+description
+Allow addition of a new query or modification of an existing query
 
-⸻
+project = GFXIPARCH and Target Environment = GFX13 and variants in (Canis, AT2)
 
-🔁 AI Prompt: Backend API – Fetch BRP Issues by Query ID (Latest Snapshot)
+Pull the list based on the query in GFXIPARCH (to be extended to other spaces later)
 
-Build an Express.js endpoint to return BRP issues based on a given queryId. The logic involves:
+The following fields need to be pulled:
 
-⸻
+Feature Name
 
-📦 Collections Involved
-	•	brp_queries – Metadata for saved JQL-like queries
-	•	brp_snapshots – Snapshot entries containing queryId, snapshotId, createdAt
-	•	brp_issues – All fetched issues tied to a snapshotId
+Feature JIRA
 
-⸻
+Priority
 
-📥 Input
-	•	queryId (from request param or query param): ID of the saved BRP query
-	•	Optional: view param (overall, variant, etc.)
+Variant
 
-⸻
+Functional Area
 
-🧠 Core Logic
-	1.	Find Latest Snapshot
-	•	From brp_snapshots, find the document with the matching queryId and the most recent createdAt.
-	•	Retrieve its snapshotId.
-	2.	Fetch Issues
-	•	From brp_issues, pull all issues where snapshotId matches the one found above.
-	3.	Apply Business Logic
-	•	For each issue, apply derived field logic using the helper functions in brpLogic.js:
-	•	Complexity
-	•	POR Status
-	•	Has FW
-	•	Has SW
-	•	SOC Impact
-	•	GC Impact
-	4.	View-based Formatting
-	•	Format the output depending on the view parameter:
-	•	overall, variant, subsystem, sw, fw, gc
-	•	Each view returns specific columns (defined in logic or a config file).
-	5.	Return Formatted Result
-	•	As JSON by default
-	•	If export=csv, return downloadable CSV stream
+Impacted Subsystem
 
-⸻
+Subsystem Complexity
 
-✅ Example Endpoint
+Complexity (if in GFXIPARCH Subsystem Complexity has any H then Complexity is High, else if GFXIPARCH Subsystem Complexity has any M then Complexity is Medium, if then GFXIPARCH Subsystem Complexity has any L then Complexity is Low else NA)
 
-GET /api/brp/issues?queryId=abc123&view=overall
+Affected Blocks
 
+Jama Item
 
-⸻
+Reference Link
 
-📝 Notes
-	•	Reuse existing snapshot/issue resolution logic from jira_snapshots and jira_issues.
-	•	Do not duplicate logic across views — use a view config file or formatter for columns.
-	•	Store all business logic in brpLogic.js as reusable, testable functions.
-	•	Make sure snapshot logic picks the latest by timestamp, not just ID.
+Feature Architect
 
-⸻
+Status
 
-Would you like a code scaffold for this now (including route + logic + utils)?
+POR Status - IN = GFXIPARCH Status is architecture complete, OUT =  GFXIPARCH Status is Rejected or Deferred , TRENDING IN = GFXIPARCH Status is Proposal or Specification, SCOPING=  GFXIPARCH Status is specification review )
+
+Impacted IP
+
+Has FW (if Impacted IP contains (FW-CP or FW-DCN or FW-DF or FW-IMU or FW-PMFW or FW - PSP or FW-RLC or FW-SDMA or FW- UMC or FW - VBL or FW- VCN or FW-WGS) display YES else display NO)
+
+Has SW ( if Impacted IP contains (Host KMD or Profile and Debug Tools or Shader Compiler or UMD or guest KMD) then display Yes else display No)
+
+SOC Impact (Needs to be calculated -   if Impacted IP contains SOC DV then display Yes else No)  - is SDMA on this and DF
+
+GC Impact (if Impacted IP contains GC - Config/Harvesting, GC- CG/PG, GC-DV, GC-PV, )
+
+(TBD-> COM – DFT, COM – YIELD → SOC? ?)
+
+Display
+
+All views are available as separate tabs
+
+State management needs to be done while moving across different tabs including filters set, optional fields selected etc.,)
+
+Each View below shall allow filtering capability (AND, OR, NOT, EQUAL for multiple levels)
+
+Each View below with filtered/unfiltered data on all displayed fields should allow download function into a CSV
+
+Each view will need to display the total count on each field
+
+Ability to add any other fields as columns to the view
+
+Allow user to select the view they need
+
+Overall view - Table to start with
+
+Mandatory displayed Fields - Jira numbers, Summary, Priority, Variants, Feature Category, POR Status, Impacted Subsystems, Complexity
+
+Optional Display fields - Jama Item, Feature Architect, Has FW, Has SW, SOC impact, total
+
+Variant view (should allow filtering of the variants - =, AND, OR, NOT) -
+
+Mandatory displayed Fields - Jira numbers, Summary, Priority, Feature Category, POR Status, Impacted Subsystems, Complexity, Has FW, Has SW, SOC impact, Total
+
+Optional Fields - PRS ID, Feature Architect,
+
+Subsystem View - Should allow variant filtering as above to start, and additional subsystem filtering
+
+Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), Impacted subsystem (each has a separate column) with Affected blocks displayed, Has FW, Has SW, GC impact  (count GC Impact), total (count affected blocks)
+
+SW View (Should allow variant filtering as above to start, followed by filtering on SW components)
+
+Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), PRS ID, SW components (calculated from Impacted IP short list) in separate columns, total (to be calculated)
+
+FW View (Should allow variant filtering as above to start, followed by filtering on FW components)
+
+Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), Impacted Subsystems, PRS ID, FW components (calculated from Impacted IP short list) in separate columns, total (to be calculated)
+
+GC View (Should allow variant filtering as above to start, followed by filtering on GC components)
+
+Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), Impacted Subsystems, PRS ID, GC components (calculated from Impacted IP short list) in separate columns, total (to be calculated)
