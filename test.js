@@ -1,92 +1,81 @@
-description
-Allow addition of a new query or modification of an existing query
+Thanks for sharing the screenshots. Based on the messages and terminal output, here’s what’s happening and what steps you need to take next:
 
-project = GFXIPARCH and Target Environment = GFX13 and variants in (Canis, AT2)
+⸻
 
-Pull the list based on the query in GFXIPARCH (to be extended to other spaces later)
+🧾 Summary of the Issue
 
-The following fields need to be pulled:
+You are trying to SSH into an AMD internal server (atlvgfxpapd01) with your user vmylavar, but you’re getting the following error:
 
-Feature Name
+Could not chdir to home directory /home/vmylavar: No such file or directory
 
-Feature JIRA
+And your user shell is currently set to:
 
-Priority
+/sbin/nologin
 
-Variant
+This is a non-interactive shell, which means even if you login, you won’t get a working shell session. This is often the default for service or deactivated accounts.
 
-Functional Area
+⸻
 
-Impacted Subsystem
+✅ Required Actions
 
-Subsystem Complexity
+To fix this, you need two things:
 
-Complexity (if in GFXIPARCH Subsystem Complexity has any H then Complexity is High, else if GFXIPARCH Subsystem Complexity has any M then Complexity is Medium, if then GFXIPARCH Subsystem Complexity has any L then Complexity is Low else NA)
+⸻
 
-Affected Blocks
+1. 🔁 Change Shell to an Interactive Shell
 
-Jama Item
+The IT team already told you to raise a request to change your shell from /sbin/nologin to:
 
-Reference Link
+/tool/pandora/bin/tcsh
 
-Feature Architect
+✅ Raise a UNIX Account Modification request via the provided AMD ServiceNow catalog item (as shown in the screenshot).
+🔗 [Use this link]: Create UNIX Account/Home Directory/Linux Virtual Desktop (ETX)
 
-Status
+You can write in the request:
 
-POR Status - IN = GFXIPARCH Status is architecture complete, OUT =  GFXIPARCH Status is Rejected or Deferred , TRENDING IN = GFXIPARCH Status is Proposal or Specification, SCOPING=  GFXIPARCH Status is specification review )
+Current shell: /sbin/nologin
+Requested shell: /tool/pandora/bin/tcsh
+Justification: To enable interactive shell access for hosting and deploying a Node.js based internal application (GF App) on server atlvgfxpapd01.
 
-Impacted IP
+⸻
 
-Has FW (if Impacted IP contains (FW-CP or FW-DCN or FW-DF or FW-IMU or FW-PMFW or FW - PSP or FW-RLC or FW-SDMA or FW- UMC or FW - VBL or FW- VCN or FW-WGS) display YES else display NO)
+2. 🏠 Ensure Home Directory Exists
 
-Has SW ( if Impacted IP contains (Host KMD or Profile and Debug Tools or Shader Compiler or UMD or guest KMD) then display Yes else display No)
+The system also says:
 
-SOC Impact (Needs to be calculated -   if Impacted IP contains SOC DV then display Yes else No)  - is SDMA on this and DF
+Could not chdir to home directory /home/vmylavar: No such file or directory
 
-GC Impact (if Impacted IP contains GC - Config/Harvesting, GC- CG/PG, GC-DV, GC-PV, )
+So even after changing the shell, your login will fail unless the home directory is created.
 
-(TBD-> COM – DFT, COM – YIELD → SOC? ?)
+✅ In the same request or in a follow-up message to IT/IAM team (dl.IAM_ops@amd.com), request home directory provisioning:
 
-Display
+Kindly create the home directory /home/vmylavar with appropriate permissions and ownership, as I am setting up an internal web app deployment.
 
-All views are available as separate tabs
+⸻
 
-State management needs to be done while moving across different tabs including filters set, optional fields selected etc.,)
+📤 Optional Email to IT Manager (Shell + Home Directory)
 
-Each View below shall allow filtering capability (AND, OR, NOT, EQUAL for multiple levels)
+You may also want to send an email like this:
 
-Each View below with filtered/unfiltered data on all displayed fields should allow download function into a CSV
+⸻
 
-Each view will need to display the total count on each field
+Subject: Request to Enable Interactive Shell and Create Home Directory for Internal App Deployment
 
-Ability to add any other fields as columns to the view
+Body:
 
-Allow user to select the view they need
+Hi [Manager Name],
 
-Overall view - Table to start with
+I attempted to SSH into atlvgfxpapd01 using my account vmylavar, but I’m encountering a login issue due to the shell being set to /sbin/nologin and the home directory /home/vmylavar not existing.
 
-Mandatory displayed Fields - Jira numbers, Summary, Priority, Variants, Feature Category, POR Status, Impacted Subsystems, Complexity
+As advised by SaiMeghana, I’ve raised a request via the ServiceNow catalog to update my shell to /tool/pandora/bin/tcsh. I also request the IAM team to provision the required home directory to enable proper access.
 
-Optional Display fields - Jama Item, Feature Architect, Has FW, Has SW, SOC impact, total
+This is required to host and deploy the GF internal web application backend on this server.
 
-Variant view (should allow filtering of the variants - =, AND, OR, NOT) -
+Appreciate your support in expediting the approval and setup.
 
-Mandatory displayed Fields - Jira numbers, Summary, Priority, Feature Category, POR Status, Impacted Subsystems, Complexity, Has FW, Has SW, SOC impact, Total
+Best regards,
+Vamsi Krishna Mylavarapu
 
-Optional Fields - PRS ID, Feature Architect,
+⸻
 
-Subsystem View - Should allow variant filtering as above to start, and additional subsystem filtering
-
-Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), Impacted subsystem (each has a separate column) with Affected blocks displayed, Has FW, Has SW, GC impact  (count GC Impact), total (count affected blocks)
-
-SW View (Should allow variant filtering as above to start, followed by filtering on SW components)
-
-Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), PRS ID, SW components (calculated from Impacted IP short list) in separate columns, total (to be calculated)
-
-FW View (Should allow variant filtering as above to start, followed by filtering on FW components)
-
-Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), Impacted Subsystems, PRS ID, FW components (calculated from Impacted IP short list) in separate columns, total (to be calculated)
-
-GC View (Should allow variant filtering as above to start, followed by filtering on GC components)
-
-Fields - Jira numbers, Summary, Priority, Feature Category, POR Status (to be calculated), Impacted Subsystems, PRS ID, GC components (calculated from Impacted IP short list) in separate columns, total (to be calculated)
+Let me know if you want this email reworded formally or casually.
