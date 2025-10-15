@@ -1,3 +1,7 @@
-echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc
-echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
-echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.bashrc
+setenv NVM_DIR "$HOME/.nvm"
+if (-e "$NVM_DIR/nvm.sh") then
+  source "$NVM_DIR/nvm.sh"
+endif
+if (-e "$NVM_DIR/bash_completion") then
+  source "$NVM_DIR/bash_completion"
+endif
