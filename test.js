@@ -1,140 +1,144 @@
-Perfect — thanks for clarifying.
+Perfect — you’re now at the final integration step 👏
 
-Since your certificate (.cer) and key (.key) files will be located outside the project directory, and you want flexibility to adjust their paths easily (especially for production environments like your server), we’ll externalize the paths into .env variables and ensure the project does not assume any fixed location.
-
-Here’s the updated setup plan and code tailored to your structure 👇
+Let’s make this work cleanly with your existing PM2 + Next.js + SSL setup using the serve package (no custom server.js required).
 
 ⸻
 
-✅ Recommended Project Structure
+✅ 1️⃣ Install serve (if not already)
 
-/
-├── backend/
-│   ├── reverse-proxy.js ✅
-│   └── ... (existing backend files)
-├── frontend/
-│   └── ...
-├── .env ✅ (in backend)
-├── /etc/ssl/certs/      <-- 👈 actual certificate folder (example)
-│   ├── your-domain.cer
-│   └── your-domain.key
+Run this once in your frontend folder:
+
+npm install serve --save-dev
 
 
 ⸻
 
-📄 .env (inside backend/.env)
+✅ 2️⃣ Folder setup for SSL certificates
 
-Make this fully configurable:
+You already have:
 
-PORT=8080
-FRONTEND=http://localhost:3000
-BACKEND=http://localhost:4000
-USE_HTTPS=true
+/etc/ssl/gfxip/
+ ├── gfxip-dashboard.key
+ ├── gfxip-dashboard.cer
+ ├── gfxip-dashboard.csr
 
-# ABSOLUTE paths for certs, adjust for local or server
-CERT_PATH=/etc/ssl/certs/your-domain.cer
-KEY_PATH=/etc/ssl/certs/your-domain.key
+✔ Perfect — permissions are set. You can reuse them directly in the PM2 ecosystem config.
+
+⸻
+
+✅ 3️⃣ Update your ecosystem.config.js
+
+Replace your current config’s env_production section with this (simplified HTTPS serve setup):
+
+module.exports = {
+    apps: [
+        {
+            name: 'gfx-automation-tool',
+            script: 'npx',
+            args: 'serve -s out -l 443 --ssl-cert /etc/ssl/gfxip/gfxip-dashboard.cer --ssl-key /etc/ssl/gfxip/gfxip-dashboard.key',
+            cwd: './',
+            instances: 1,
+            autorestart: true,
+            watch: false,
+            max_memory_restart: '1G',
+            env: {
+                NODE_ENV: 'development',
+                PORT: 3000,
+                HOST: '0.0.0.0',
+            },
+            env_uat: {
+                NODE_ENV: 'uat',
+                PORT: 443,
+                HOST: '0.0.0.0',
+            },
+            env_production: {
+                NODE_ENV: 'production',
+                PORT: 443,
+                HOST: '0.0.0.0',
+            },
+            log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+            error_file: './logs/error.log',
+            out_file: './logs/out.log',
+            merge_logs: true,
+            time: true,
+        },
+    ],
+};
 
 
 ⸻
 
-📄 reverse-proxy.js (inside backend/)
+✅ 4️⃣ Update your package.json
 
-const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const https = require('https');
-const fs = require('fs');
-require('dotenv').config({ path: './.env' });
+Replace/add these key scripts:
 
-const app = express();
-
-const PORT = process.env.PORT || 8080;
-const FRONTEND = process.env.FRONTEND;
-const BACKEND = process.env.BACKEND;
-const USE_HTTPS = process.env.USE_HTTPS === 'true';
-
-console.log(`Starting reverse proxy...`);
-console.log(`Frontend → ${FRONTEND}`);
-console.log(`Backend  → ${BACKEND}`);
-console.log(`HTTPS    → ${USE_HTTPS}`);
-
-app.use((req, res, next) => {
-    console.log(`[${req.method}] ${req.url}`);
-    next();
-});
-
-app.use('/api', createProxyMiddleware({
-    target: BACKEND,
-    changeOrigin: true,
-    pathRewrite: { '^/api': '' }
-}));
-
-app.use('/', createProxyMiddleware({
-    target: FRONTEND,
-    changeOrigin: true
-}));
-
-if (USE_HTTPS) {
-    const certPath = process.env.CERT_PATH;
-    const keyPath = process.env.KEY_PATH;
-
-    if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-        console.error(`❌ SSL cert or key file not found. Please check CERT_PATH and KEY_PATH.`);
-        process.exit(1);
-    }
-
-    const options = {
-        cert: fs.readFileSync(certPath),
-        key: fs.readFileSync(keyPath)
-    };
-
-    https.createServer(options, app).listen(PORT, () => {
-        console.log(`✅ HTTPS reverse proxy running at https://localhost:${PORT}`);
-    });
-} else {
-    app.listen(PORT, () => {
-        console.log(`✅ HTTP reverse proxy running at http://localhost:${PORT}`);
-    });
+"scripts": {
+  "dev": "next dev -H 0.0.0.0 -p 3000",
+  "build": "next build && next export",
+  "serve:https": "npx serve -s out -l 443 --ssl-cert /etc/ssl/gfxip/gfxip-dashboard.cer --ssl-key /etc/ssl/gfxip/gfxip-dashboard.key",
+  "pm2:start": "pm2 start ecosystem.config.js --env production",
+  "pm2:restart": "pm2 restart gfx-automation-tool",
+  "deploy": "npm run build && npm run pm2:restart"
 }
 
+🧠 Note:
+	•	next export generates the out/ directory (static export).
+	•	You’re serving that statically with HTTPS.
 
 ⸻
 
-🧪 Example Run (Locally)
+✅ 5️⃣ Run build & start (locally or on server)
 
-cd backend
-node reverse-proxy.js
+npm run build
+/local/system/admin/bin/sudo su -
+npm run pm2:start
 
-➡ Visit:
-	•	https://localhost:8080 → Frontend
-	•	https://localhost:8080/api → Backend proxied
-
-⸻
-
-🧠 Prompt for AI Agent
-
-Here’s the exact AI prompt you can give to an agent to generate this reverse proxy file and setup:
+This will:
+	•	Build your frontend to out/
+	•	Serve it via HTTPS on port 443
+	•	Use the certificates from /etc/ssl/gfxip/
+	•	Be managed via PM2 (auto-restart, logs, etc.)
 
 ⸻
 
-🎯 AI Prompt
+✅ 6️⃣ Verify it
 
-You are a Node.js reverse proxy setup agent.
-I already have a full-stack app — frontend in Next.js running on port 3000, and backend in Express.js on port 4000.
-I want to create a reverse proxy inside the existing backend folder (not a new project) to:
-	•	Serve both frontend and backend via a single domain name
-	•	Use HTTPS if certs are available (provided via .env as absolute paths)
-	•	Route /api calls to the backend port
-	•	Keep everything configurable through .env (PORT, FRONTEND, BACKEND, CERT_PATH, KEY_PATH)
-	•	Avoid re-installing express, just use what’s already available in the backend
+Open:
 
-Requirements:
-	•	Generate reverse-proxy.js
-	•	Generate .env example
-	•	Log proxy hits
-	•	Use http-proxy-middleware
-	•	Fail gracefully if certificate files are not found
+https://gfxip-dashboard.uat.amd.com/
+
+Then verify SSL:
+
+curl -v https://gfxip-dashboard.uat.amd.com
+
+You should see the valid certificate chain loaded.
 
 ⸻
 
-Would you like me to generate these files (reverse-proxy.js, .env) now so you can try it locally?
+✅ 7️⃣ Optional — Backend CORS Update
+
+Since your backend runs on HTTP (:4000), add this in your backend CORS setup:
+
+origin: [
+  'https://gfxip-dashboard.uat.amd.com',
+  'http://localhost:3000'
+],
+credentials: true,
+
+
+⸻
+
+✅ Summary
+
+Step	Task	Command
+1	Install serve	npm install serve --save-dev
+2	Build project	npm run build
+3	Start with PM2 HTTPS	npm run pm2:start
+4	Check logs	pm2 logs gfx-automation-tool
+5	Verify HTTPS	https://gfxip-dashboard.uat.amd.com
+
+
+⸻
+
+Would you like me to modify your ecosystem.config.js so that it automatically uses HTTP on port 3000 in development and HTTPS on port 443 in UAT/production (switching based on NODE_ENV)?
+That way you can test locally too without changing anything.
