@@ -1,17 +1,27 @@
-I’m using Okta authentication in a Next.js (JavaScript) frontend that connects to a backend Express API.
-My setup includes:
-	•	A custom AuthContext (using OktaAuth from @okta/okta-auth-js)
-	•	A ProtectedRoute wrapper for all protected pages
-	•	Okta configuration using PKCE flow with clientId, issuer, and redirectUri
-	•	The app checks for authentication state (authState.isAuthenticated) before fetching user data or calling APIs
+Here’s a clean, professional message you can use to raise the request:
 
-Everything works correctly — login, callback, tokens, and backend verification — but the frontend triggers multiple API calls right after login or page refresh.
-I want you to:
-	1.	Explain in detail how the frontend authentication flow works step-by-step — from app load, redirect, token storage, to token verification and rehydration.
-	2.	Identify which parts of the flow typically trigger duplicate API calls (e.g., re-renders, missing dependency arrays, auth state initialization loops).
-	3.	Check whether my AuthContext, useEffect hooks, or ProtectedRoute logic might be causing re-fetching or multiple authentication checks.
-	4.	Explain how oktaAuth.authStateManager.subscribe() and restoreOriginalUri() behave in this flow — and whether they might cause repeated triggers.
-	5.	Recommend best practices to fix it — like using a single auth provider, memoizing auth context, or gating data fetches until authState.isAuthenticated is stable.
-	6.	Include suggestions specific to Next.js static or hybrid rendering, since the app might be statically served using serve and rehydrated client-side.
+⸻
 
-Also point out how to make the API fetch happen only once per login session without breaking the session persistence after page reloads.
+Subject: Request to Add “Groups” Claim in Okta Authorization Server
+
+Message:
+Hi [Okta Admin / IAM Team],
+
+I need access to the user group information within the ID or access tokens returned by Okta during authentication. Currently, the tokens don’t include any group data because there is no “groups” claim configured in the authorization server.
+
+As per Okta’s official documentation (Customize tokens returned from Okta with a Groups claim￼), we must create a custom claim named groups under the custom authorization server (for example: https://<your-okta-domain>/oauth2/default) and configure it to:
+	•	Include in: ID Token and Access Token
+	•	Value type: Groups
+	•	Filter: Matches all groups or specific group naming pattern (e.g., starts with *)
+	•	Include in token type: Any scope (or at least the groups scope)
+
+This will allow the frontend and backend applications to retrieve user group membership directly from the tokens during authentication.
+
+Could you please add this groups claim in our Okta authorization server and confirm once it’s done?
+
+Thank you,
+[Your Name]
+
+⸻
+
+Would you like me to tailor it for your AMD environment or your project name (like GFX IP Core Dashboard / Okta SSO setup)?
